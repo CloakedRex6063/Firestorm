@@ -1,0 +1,22 @@
+# Generated from CLion C/C++ Code Style settings
+---
+Language: Cpp
+BasedOnStyle: Microsoft
+NamespaceIndentation: All
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: All
+PointerAlignment: Left
+ReferenceAlignment: Left
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true
+  AfterEnum: true
+  AfterControlStatement: true
+  BeforeLambdaBody: true
+  BeforeCatch: true
+  BeforeWhile: true
+  
