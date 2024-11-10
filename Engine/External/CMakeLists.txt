@@ -1,0 +1,7 @@
+find_package(Vulkan REQUIRED)
+find_package(SDL2 REQUIRED HINTS $ENV{VULKAN_SDK}/cmake)
+if(NOT Vulkan_FOUND)
+    message(FATAL_ERROR "Vulkan not found")
+endif()
+target_link_libraries(Engine PUBLIC Vulkan::Vulkan)
+target_link_libraries(Engine PUBLIC SDL2::SDL2)
