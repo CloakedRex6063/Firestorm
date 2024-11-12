@@ -7,7 +7,9 @@ IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 AccessModifierOffset: -4
+ColumnLimit: 120
 AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Always
 PointerAlignment: Left
 ReferenceAlignment: Left
 BraceWrapping:

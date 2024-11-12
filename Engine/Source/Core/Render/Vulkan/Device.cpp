@@ -1,7 +1,6 @@
 #include "Core/Render/Vulkan/Device.h"
 #include "Core/Engine.h"
 #include "Core/FileSystem.h"
-#include "Core/Render/Renderer.h"
 #include "Core/Render/Vulkan/Utils.h"
 
 namespace FS::VK
@@ -65,17 +64,17 @@ namespace FS::VK
                                                    const VmaAllocationCreateInfo& allocInfo,
                                                    VmaAllocation& allocation) const
     {
-        const auto createInfo = vk::ImageCreateInfo()
-                                    .setImageType(vk::ImageType::e2D)
-                                    .setFormat(format)
-                                    .setExtent(vk::Extent3D(extent, 1))
-                                    .setMipLevels(1)
-                                    .setArrayLayers(1)
-                                    .setSamples(vk::SampleCountFlagBits::e1)
-                                    .setTiling(vk::ImageTiling::eOptimal)
-                                    .setUsage(usageFlags);
 
-        const VkImageCreateInfo imageCreateInfo = createInfo;
+        const VkImageCreateInfo imageCreateInfo = vk::ImageCreateInfo()
+                                                      .setImageType(vk::ImageType::e2D)
+                                                      .setFormat(format)
+                                                      .setExtent(vk::Extent3D(extent, 1))
+                                                      .setMipLevels(1)
+                                                      .setArrayLayers(1)
+                                                      .setSamples(vk::SampleCountFlagBits::e1)
+                                                      .setTiling(vk::ImageTiling::eOptimal)
+                                                      .setUsage(usageFlags);
+        ;
         VkImage image;
         vmaCreateImage(GetAllocator(), &imageCreateInfo, &allocInfo, &image, &allocation, nullptr);
         return std::make_unique<vk::Image>(image);
@@ -95,7 +94,36 @@ namespace FS::VK
 
         return std::make_unique<vk::raii::ImageView>(mDevice->createImageView(createInfo));
     }
-    
+
+    std::unique_ptr<vk::Buffer> Device::CreateBuffer(const vk::DeviceSize allocSize, const vk::BufferUsageFlags usage,
+                                                     const VmaMemoryUsage memoryUsage, VmaAllocation& allocation) const
+    {
+        const VkBufferCreateInfo bufferCreateInfo = vk::BufferCreateInfo().setSize(allocSize).setUsage(usage);
+
+        VmaAllocationCreateInfo createInfo{};
+        createInfo.usage = memoryUsage;
+        createInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+        VkBuffer buffer;
+        vmaCreateBuffer(GetAllocator(), &bufferCreateInfo, &createInfo, &buffer, &allocation, nullptr);
+        return std::make_unique<vk::Buffer>(buffer);
+    }
+
+    vk::DeviceAddress Device::GetBufferAddress(const vk::Buffer& buffer) const
+    {
+        const auto addressInfo = vk::BufferDeviceAddressInfo().setBuffer(buffer);
+        return mDevice->getBufferAddress(addressInfo);
+    }
+
+    void* Device::MapMemory(const VmaAllocation& allocation) const
+    {
+        void* mapped;
+        vmaMapMemory(GetAllocator(), allocation, &mapped);
+        return mapped;
+    }
+
+    void Device::UnmapMemory(const VmaAllocation& allocation) const { vmaUnmapMemory(GetAllocator(), allocation); }
+
     std::unique_ptr<vk::raii::ShaderModule> Device::CreateShaderModule(const std::vector<char>& code) const
     {
         const auto* codePtr = reinterpret_cast<const uint32_t*>(code.data());
@@ -124,7 +152,7 @@ namespace FS::VK
     {
         return std::make_unique<vk::raii::Pipeline>(mDevice->createGraphicsPipeline(nullptr, createInfo));
     }
-    
+
     std::unique_ptr<vk::raii::Pipeline> Device::CreateComputePipeline(
         const vk::ComputePipelineCreateInfo& createInfo) const
     {
@@ -134,14 +162,6 @@ namespace FS::VK
     uint32_t Device::GetQueueFamily(vk::QueueFlags queueType) const
     {
         const auto queueFamilies = mPhysicalDevice->getQueueFamilyProperties();
-        const auto dedicatedFamily =
-            std::ranges::find_if(queueFamilies, [queueType](const vk::QueueFamilyProperties& queueFamily)
-                                 { return queueFamily.queueFlags == queueType; });
-
-        if (dedicatedFamily != queueFamilies.end())
-        {
-            return static_cast<uint32_t>(std::distance(queueFamilies.begin(), dedicatedFamily));
-        }
         const auto generalFamily =
             std::ranges::find_if(queueFamilies, [queueType](const vk::QueueFamilyProperties& queueFamily)
                                  { return (queueFamily.queueFlags & queueType) != vk::Flags<vk::QueueFlagBits>{}; });

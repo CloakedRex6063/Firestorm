@@ -28,7 +28,7 @@ namespace FS::VK
     {
         constexpr auto clearColor = vk::ClearColorValue(std::array{0.0f, 0.0f, 0.0f, 1.0f});
         const auto range = Utils::GetImageSubresourceRange(vk::ImageAspectFlagBits::eColor);
-        mCommandBuffer->clearColorImage(image, vk::ImageLayout::eGeneral, clearColor, range);
+        mCommandBuffer->clearColorImage(image, vk::ImageLayout::eColorAttachmentOptimal, clearColor, range);
     }
 
     void Command::BeginRendering(const vk::ImageView imageView, const vk::Extent2D& extent) const
@@ -68,28 +68,29 @@ namespace FS::VK
         mCommandBuffer->setScissor(0, scissor);
     }
 
-    void Command::SetViewportAndScissor(const glm::uvec2& size, const vk::Rect2D& scissor) const
+    void Command::SetViewportAndScissor(const vk::Extent2D& size, const vk::Rect2D& scissor) const
     {
         const auto viewport = vk::Viewport()
-                                  .setWidth(static_cast<float>(size.x))
-                                  .setHeight(static_cast<float>(size.y))
+                                  .setWidth(static_cast<float>(size.width))
+                                  .setHeight(static_cast<float>(size.height))
                                   .setMinDepth(0.0)
                                   .setMaxDepth(1.0);
         mCommandBuffer->setViewport(0, viewport);
         mCommandBuffer->setScissor(0, scissor);
     }
+    
     void Command::Draw(const uint32_t vertexCount, const uint32_t instanceCount, const uint32_t firstVertex,
                        const uint32_t firstInstance) const
     {
         mCommandBuffer->draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    void Command::TransitionImage(const vk::Image image, const vk::ImageLayout currentImageLayout,
-                                  const vk::ImageLayout nextImageLayout, const vk::ImageAspectFlags aspectMask) const
+    void Command::TransitionImage(const vk::Image image, const vk::ImageLayout oldLayout,
+                                  const vk::ImageLayout newLayout, const vk::ImageAspectFlags aspectMask) const
     {
         vk::ImageMemoryBarrier2 imageMemoryBarrier{};
-        imageMemoryBarrier.setOldLayout(currentImageLayout);
-        imageMemoryBarrier.setNewLayout(nextImageLayout);
+        imageMemoryBarrier.setOldLayout(oldLayout);
+        imageMemoryBarrier.setNewLayout(newLayout);
 
         imageMemoryBarrier.setSrcStageMask(vk::PipelineStageFlagBits2::eAllCommands);
         imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits2::eMemoryWrite);
@@ -127,6 +128,12 @@ namespace FS::VK
             .setRegionCount(1);
 
         mCommandBuffer->blitImage2(blitImageInfo);
+    }
+    
+    void Command::CopyBuffer(const vk::Buffer from, const vk::Buffer to, const vk::BufferCopy2& copyRegion) const
+    {
+        const auto copyBufferInfo = vk::CopyBufferInfo2().setSrcBuffer(from).setDstBuffer(to).setRegions(copyRegion);
+        mCommandBuffer->copyBuffer2(copyBufferInfo);
     }
 
     vk::CommandBufferSubmitInfo Command::GetSubmitInfo() const

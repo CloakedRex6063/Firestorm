@@ -1,22 +1,18 @@
 #pragma once
 
-namespace FS::VK 
+namespace FS::VK
 {
     class Device;
     class Swapchain;
     class Queue
     {
     public:
-        Queue() = delete;
         Queue(const std::shared_ptr<Device>& device, vk::QueueFlagBits queueType);
-        operator vk::raii::Queue&() const
-        {
-            return *mQueue;
-        }
+        operator vk::raii::Queue&() const { return *mQueue; }
 
-        void SubmitCommand(vk::SemaphoreSubmitInfo& signalSemaphoreInfo,
-                           vk::SemaphoreSubmitInfo& waitSemaphoreInfo,
-                           vk::CommandBufferSubmitInfo& commandBufferSubmitInfo) const;
+        void SubmitCommand(const vk::SemaphoreSubmitInfo& signalSemaphoreInfo,
+                           const vk::SemaphoreSubmitInfo& waitSemaphoreInfo,
+                           const vk::CommandBufferSubmitInfo& commandBufferSubmitInfo, vk::Fence fence = {}) const;
         void Present(const Swapchain& swapchain, const vk::raii::Semaphore& semaphore) const;
 
     private:
@@ -24,4 +20,4 @@ namespace FS::VK
         uint32_t mFamilyIndex;
         std::unique_ptr<vk::raii::Queue> mQueue;
     };
-}
+} // namespace FS::VK
