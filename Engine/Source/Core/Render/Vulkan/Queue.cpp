@@ -7,7 +7,7 @@
 #include "Core/Render/Vulkan/Swapchain.h"
 #include "Core/Render/Vulkan/Utils.h"
 
-namespace FS::VK 
+namespace FS::VK
 {
     Queue::Queue(const std::shared_ptr<Device>& device, const vk::QueueFlagBits queueType) : mDevice(device)
     {
@@ -15,8 +15,9 @@ namespace FS::VK
         mQueue = std::make_unique<vk::raii::Queue>(*mDevice, mFamilyIndex, 0);
     }
 
-    void Queue::SubmitCommand(vk::SemaphoreSubmitInfo& signalSemaphoreInfo, vk::SemaphoreSubmitInfo& waitSemaphoreInfo,
-                              vk::CommandBufferSubmitInfo& commandBufferSubmitInfo) const
+    void Queue::SubmitCommand(const vk::SemaphoreSubmitInfo& signalSemaphoreInfo,
+                              const vk::SemaphoreSubmitInfo& waitSemaphoreInfo,
+                              const vk::CommandBufferSubmitInfo& commandBufferSubmitInfo, const vk::Fence fence) const
     {
         vk::SubmitInfo2 submitInfo;
         submitInfo.setSignalSemaphoreInfoCount(signalSemaphoreInfo.semaphore ? 1 : 0);
@@ -25,7 +26,7 @@ namespace FS::VK
         submitInfo.setWaitSemaphoreInfos(waitSemaphoreInfo);
         submitInfo.setCommandBufferInfoCount(commandBufferSubmitInfo.commandBuffer ? 1 : 0);
         submitInfo.setCommandBufferInfos(commandBufferSubmitInfo);
-        mQueue->submit2(submitInfo);
+        mQueue->submit2(submitInfo, fence);
     }
 
     void Queue::Present(const Swapchain& swapchain, const vk::raii::Semaphore& semaphore) const
@@ -40,4 +41,4 @@ namespace FS::VK
         presentInfo.setPImageIndices(&imageIndex);
         auto result = mQueue->presentKHR(presentInfo);
     }
-} // FS::Vulkan
+} // namespace FS::VK

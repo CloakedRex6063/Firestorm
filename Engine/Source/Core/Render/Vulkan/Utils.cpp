@@ -88,32 +88,27 @@ namespace FS::VK
         const auto createInfo = vk::DeviceCreateInfo()
                                 .setPNext(&deviceFeature)
                                 .setQueueCreateInfos(queueCreateInfos)
-                                .setEnabledExtensionCount(deviceExtensions.size())
                                 .setPEnabledExtensionNames(deviceExtensions);
         return std::make_unique<vk::raii::Device>(physicalDevice, createInfo);
     }
 
     vk::ImageSubresourceRange Utils::GetImageSubresourceRange(const vk::ImageAspectFlags aspectFlags)
     {
-        vk::ImageSubresourceRange subresourceRange{};
-        subresourceRange.setAspectMask(aspectFlags);
-        subresourceRange.setLevelCount(vk::RemainingMipLevels);
-        subresourceRange.setLayerCount(vk::RemainingArrayLayers);
-        return subresourceRange;
+        return vk::ImageSubresourceRange()
+            .setAspectMask(aspectFlags)
+            .setLevelCount(vk::RemainingMipLevels)
+            .setLayerCount(vk::RemainingArrayLayers);
     }
 
     vk::SemaphoreSubmitInfo Utils::GetSemaphoreSubmitInfo(const vk::PipelineStageFlags2 stageMask,
         const vk::Semaphore semaphore)
     {
-        const auto submitInfo = vk::SemaphoreSubmitInfo().setSemaphore(semaphore).setStageMask(stageMask);
-        return submitInfo;
+        return vk::SemaphoreSubmitInfo().setSemaphore(semaphore).setStageMask(stageMask);
     }
 
     VmaAllocationCreateInfo Utils::ImageAllocInfo(const VmaMemoryUsage usage, const VkFlags requiredFlags)
     {
-        VmaAllocationCreateInfo allocationInfo{};
-        allocationInfo.usage = usage;
-        allocationInfo.requiredFlags = requiredFlags;
+        const VmaAllocationCreateInfo allocationInfo{.usage = usage, .requiredFlags = requiredFlags };
         return allocationInfo;
     }
 

@@ -3,6 +3,7 @@
 #include "Core/FileSystem.h"
 #include "Core/Render/Renderer.h"
 #include "Core/Render/Vulkan/Renderer.h"
+#include "Core/ResourceSystem.h"
 
 namespace FS
 {
@@ -12,6 +13,7 @@ namespace FS
     {
         mFileSystem = std::make_shared<FS::FileSystem>();
         mRenderer = std::make_shared<VK::Renderer>();
+        mResourceSystem = std::make_shared<FS::ResourceSystem>();
     }
 
     void Engine::BeginFrame() const { Renderer().BeginFrame(); }

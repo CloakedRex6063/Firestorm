@@ -8,8 +8,10 @@ namespace FS::VK
     {
     public:
         GeometryPipeline(const Device& device, const glm::uvec2& size);
+        
         operator vk::raii::Pipeline&() const { return *mPipeline; }
-
+        [[nodiscard]] vk::PipelineLayout GetLayout() const { return *mPipeline->GetLayout(); }
+        
     private:
         std::unique_ptr<GraphicsPipeline> mPipeline;
     };

@@ -28,7 +28,7 @@ namespace FS::VK
 
         [[nodiscard]] vk::raii::Semaphore CreateSemaphore() const;
 
-        [[nodiscard]] vk::raii::Fence CreateFence(vk::FenceCreateFlags flags) const;
+        [[nodiscard]] vk::raii::Fence CreateFence(vk::FenceCreateFlags flags = vk::FenceCreateFlags()) const;
 
         [[nodiscard]] vk::raii::SwapchainKHR CreateSwapchainKHR(
             const vk::raii::SurfaceKHR& surface, const glm::uvec2& size,
@@ -42,7 +42,15 @@ namespace FS::VK
         [[nodiscard]] std::unique_ptr<vk::raii::ImageView> CreateImageView(const vk::Image& image, vk::Format format,
                                                                            vk::ImageAspectFlags aspectFlags) const;
 
+        [[nodiscard]] std::unique_ptr<vk::Buffer> CreateBuffer(vk::DeviceSize allocSize, vk::BufferUsageFlags usage,
+                                                               VmaMemoryUsage memoryUsage, VmaAllocation& allocation) const;
+        [[nodiscard]] vk::DeviceAddress GetBufferAddress(const vk::Buffer& buffer) const;
+
+        [[nodiscard]] void* MapMemory(const VmaAllocation& allocation) const;
+        void UnmapMemory(const VmaAllocation& allocation) const;
+
         [[nodiscard]] std::unique_ptr<vk::raii::ShaderModule> CreateShaderModule(const std::vector<char>& code) const;
+        
         [[nodiscard]] std::pair<vk::PipelineShaderStageCreateInfo, vk::raii::ShaderModule> CreateShaderStage(
             vk::ShaderStageFlagBits flags, const std::string& path) const;
 
