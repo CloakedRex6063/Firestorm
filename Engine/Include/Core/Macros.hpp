@@ -11,3 +11,12 @@
 #define MOVABLE(ClassName)                                                                                             \
     ClassName(ClassName&&) noexcept = default;                                                                         \
     ClassName& operator=(ClassName&&) noexcept = default;
+
+#define UNDERLYING(Underlying, Name)                                                                                   \
+    operator Underlying() const { return m##Name; }
+
+#define ASSERT(Result) assert(Result != 0);
+
+#define VK_ASSERT(Result) assert(Result == 0);
+#define VK_PIPELINE() \
+    operator VkPipeline() const { return mPipelineBuilder; }

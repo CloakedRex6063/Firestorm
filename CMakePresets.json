@@ -11,7 +11,7 @@
             "name": "default", 
             "hidden": true, 
             "generator": "Visual Studio 17 2022", 
-            "binaryDir": "${sourceDir}/Build/${presetName}", 
+            "binaryDir": "${sourceDir}/Build/${presetName}",
             "cacheVariables": 
             {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -34,7 +34,17 @@
             {
                 "CMAKE_BUILD_TYPE": "Release"
             }
-      }
+        },
+        {
+            "name": "Release-Tidy",
+            "inherits": "default",
+            "description": "Release build with custom flags and path",
+            "cacheVariables":
+            {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ENABLE_TIDY": true
+            }
+        }
     ]
 }
   

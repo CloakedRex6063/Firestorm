@@ -1,33 +1,46 @@
 #pragma once
+#include <Core/EnginePCH.hpp>
+
+namespace FS
+{
+    class Window;
+}
 
 namespace FS::VK
 {
-    class Device;
-
+    class Image;
+    class Context;
+    class Queue;
     class Swapchain
     {
     public:
-        Swapchain(const std::shared_ptr<Device>& device, vk::raii::SurfaceKHR& surface, const glm::uvec2& size);
-
+        Swapchain(const std::shared_ptr<Context>& device, const glm::uvec2& size);
         ~Swapchain();
 
-        operator vk::raii::SwapchainKHR&() const { return *mSwapchain; }
+        NON_MOVABLE(Swapchain);
+        NON_COPYABLE(Swapchain);
+        UNDERLYING(VkSwapchainKHR, Swapchain);
 
         void RecreateSwapchain(const glm::uvec2& size);
+        void CreateSwapchain(const glm::uvec2& size, VkSwapchainKHR oldSwapchain = nullptr);
+        void CreateImages();
 
-        void AcquireNextImage(const vk::raii::Semaphore& semaphore, const vk::raii::Fence& fence);
-
-        vk::Image& GetCurrentImage() { return mImages[mCurrentImageIndex]; }
-        vk::raii::ImageView& GetCurrentImageView() const { return *mImageViews[mCurrentImageIndex]; }
+        [[nodiscard]] VkResult AcquireNextImage(VkSemaphore semaphore);
+        [[nodiscard]] VkResult Present(VkCommandBuffer cmdBuffer, VkSemaphore waitSemaphore,
+                                       VkSemaphore signalSemaphore, VkFence fence);
 
         [[nodiscard]] uint32_t GetCurrentImageIndex() const { return mCurrentImageIndex; }
+        [[nodiscard]] Image& GetCurrentImage() const { return *mImages[mCurrentImageIndex]; }
+        [[nodiscard]] VkExtent2D GetExtent() const { return mExtent; }
 
     private:
-        std::shared_ptr<Device> mDevice;
-        std::unique_ptr<vk::raii::SwapchainKHR> mSwapchain;
-        std::unique_ptr<vk::raii::SurfaceKHR> mSurface;
-        std::vector<vk::Image> mImages;
-        std::vector<std::unique_ptr<vk::raii::ImageView>> mImageViews;
+        std::shared_ptr<Context> mContext;
+        std::shared_ptr<Queue> mGraphicsQueue;
+
+        VkSwapchainKHR mSwapchain{};
+
+        std::array<std::unique_ptr<Image>, 3> mImages;
         uint32_t mCurrentImageIndex = 0;
+        VkExtent2D mExtent{};
     };
 } // namespace FS::VK

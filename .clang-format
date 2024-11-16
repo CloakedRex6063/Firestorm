@@ -1,24 +1,19 @@
-# Generated from CLion C/C++ Code Style settings
----
-Language: Cpp
-BasedOnStyle: Microsoft
+BasedOnStyle: Google
+Standard: c++17
+SortIncludes: CaseInsensitive
 NamespaceIndentation: All
 IndentWidth: 4
-TabWidth: 4
-UseTab: Never
+SortUsingDeclarations: false
+SpacesBeforeTrailingComments: 2
+IncludeBlocks: Preserve
 AccessModifierOffset: -4
-ColumnLimit: 120
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: Always
-PointerAlignment: Left
-ReferenceAlignment: Left
-BraceWrapping:
-  AfterFunction: true
-  AfterClass: true
-  AfterStruct: true
-  AfterEnum: true
-  AfterControlStatement: true
-  BeforeLambdaBody: true
-  BeforeCatch: true
-  BeforeWhile: true
-  
+ReflowComments: true
+ColumnLimit: 128
+AlignAfterOpenBracket: Align
+BreakBeforeBraces: Allman
+BinPackArguments: false
+BinPackParameters: false
+ExperimentalAutoDetectBinPacking: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: true

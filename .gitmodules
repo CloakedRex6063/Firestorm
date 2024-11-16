@@ -1,0 +1,9 @@
+[submodule "Engine/External/FastGLTF"]
+	path = Engine/External/FastGLTF
+	url = https://github.com/spnda/fastgltf
+[submodule "Engine/External/SimdJSON"]
+	path = Engine/External/SimdJSON
+	url = https://github.com/simdjson/simdjson
+[submodule "Engine/External/VKB"]
+	path = Engine/External/VKB
+	url = https://github.com/charles-lunarg/vk-bootstrap

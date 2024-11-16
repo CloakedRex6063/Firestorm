@@ -5,6 +5,25 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} /Ob0")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} /Ob3")
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fno-inline")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -finline-functions")
+endif ()
+
+if(CLANG_FORMAT_BIN)
+    add_custom_target(
+            clang-format
+            COMMAND ${CLANG_FORMAT_BIN}
+            -i
+            ${SOURCE_FILES}
+            COMMENT "Running clang-format on source files"
+    )
+    add_dependencies(Engine clang-format)
+endif ()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "Building on Windows")
     add_compile_definitions(FS_PLATFORM_WINDOWS)

@@ -7,20 +7,22 @@
 
 namespace FS
 {
-    Engine FS::gEngine; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    Engine gEngine;
 
     void Engine::Init()
     {
+        mLog = std::make_shared<FS::Log>();
         mFileSystem = std::make_shared<FS::FileSystem>();
         mRenderer = std::make_shared<VK::Renderer>();
         mResourceSystem = std::make_shared<FS::ResourceSystem>();
+        Log::Info("Initialised engine");
     }
 
     void Engine::BeginFrame() const { Renderer().BeginFrame(); }
 
+    void Engine::Update() const { Renderer().Render(); }
+    
     void Engine::EndFrame() const { Renderer().EndFrame(); }
 
-    void Engine::Update() const { Renderer().Render(); }
-
-    void Engine::Shutdown() {}
+    void Engine::Shutdown() { Log::Info("Shutting down engine"); }
 } // namespace FS

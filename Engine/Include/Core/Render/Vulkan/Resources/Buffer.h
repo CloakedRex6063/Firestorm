@@ -1,26 +1,26 @@
 #pragma once
+#include "Core/Render/Vulkan/Tools/Enums.hpp"
 
 namespace FS::VK
 {
-    class Device;
+    class Context;
     class Buffer
     {
     public:
-        Buffer(const std::shared_ptr<Device>& device, uint32_t allocSize, vk::BufferUsageFlags usage,
-               VmaMemoryUsage memoryUsage);
+        Buffer(const std::shared_ptr<Context>& context, BufferType type, uint32_t allocSize);
         ~Buffer();
-        MOVABLE(Buffer);
         NON_COPYABLE(Buffer);
+        MOVABLE(Buffer);
+        UNDERLYING(VkBuffer, Buffer);
 
-        operator vk::Buffer&() const { return *mBuffer; }
-        [[nodiscard]] VmaAllocation& GetAllocation() const { return *mAllocation; }
+        VmaAllocation& GetAllocation() {return mAllocation;}
+        VmaAllocationInfo& GetAllocationInfo() {return mAllocationInfo;}
 
     private:
-        std::shared_ptr<Device> mDevice;
-        
-        std::unique_ptr<VmaAllocation> mAllocation;
+        std::shared_ptr<Context> mContext;
+
+        VkBuffer mBuffer{};
+        VmaAllocation mAllocation{};
         VmaAllocationInfo mAllocationInfo{};
-        
-        std::unique_ptr<vk::Buffer> mBuffer;
     };
-} // namespace FS::VK
+}  // namespace FS::VK

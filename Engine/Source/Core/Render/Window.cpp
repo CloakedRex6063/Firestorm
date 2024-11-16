@@ -17,9 +17,17 @@ namespace FS
         mWindow = std::unique_ptr<SDL_Window, WindowDeleter>(pointer);
     }
 
-    bool Window::IsRunning() const
+    bool Window::IsRunning() const { return mRunning; }
+
+    VkSurfaceKHR Window::CreateSurface(const VkInstance& instance) const
     {
-        return mRunning;
+        VkSurfaceKHR surface;
+        if (!SDL_Vulkan_CreateSurface(mWindow.get(), instance, &surface))
+        {
+            Log::Critical("Failed to create Vulkan surface!, exiting....");
+            exit(-1);
+        }
+        return surface;
     }
 
     void Window::PollEvents()
@@ -34,21 +42,13 @@ namespace FS
         }
     }
 
-    std::vector<const char*> Window::GetRequiredExtensions() const
+    std::vector<const char*> Window::RequiredExtensions() const
     {
         uint32_t extensionCount = 0;
         SDL_Vulkan_GetInstanceExtensions(mWindow.get(), &extensionCount, nullptr);
         std::vector<const char*> requiredExtensions(extensionCount);
         SDL_Vulkan_GetInstanceExtensions(mWindow.get(), &extensionCount, requiredExtensions.data());
         return requiredExtensions;
-    }
-
-    vk::raii::SurfaceKHR Window::CreateSurface(vk::raii::Instance& instance) const
-    {
-        VkSurfaceKHR surface;
-        SDL_Vulkan_CreateSurface(mWindow.get(), *instance, &surface);
-        //TODO: Log Error and exit
-        return {instance, surface};
     }
 
     glm::uvec2 Window::GetSize() const

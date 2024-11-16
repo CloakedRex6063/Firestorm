@@ -1,18 +1,16 @@
 #pragma once
-#include "Core/Render/Vulkan/Pipelines/Backend/GraphicsPipeline.h"
+#include "PipelineBuilder.h"
 
 namespace FS::VK
 {
-    class Device;
     class GeometryPipeline
     {
     public:
-        GeometryPipeline(const Device& device, const glm::uvec2& size);
-        
-        operator vk::raii::Pipeline&() const { return *mPipeline; }
-        [[nodiscard]] vk::PipelineLayout GetLayout() const { return *mPipeline->GetLayout(); }
-        
+        GeometryPipeline(const std::shared_ptr<Context>& context, const glm::uvec2& size);
+
+        VK_PIPELINE()
+
     private:
-        std::unique_ptr<GraphicsPipeline> mPipeline;
+        PipelineBuilder mPipelineBuilder;
     };
-} // namespace FS::VK
+}  // namespace FS::VK

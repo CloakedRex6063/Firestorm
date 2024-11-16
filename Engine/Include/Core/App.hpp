@@ -15,7 +15,7 @@ namespace FS
         virtual void Update() = 0;
         virtual void Shutdown() = 0;
     };
-}  // namespace bee
+} // namespace FS
 
 extern std::unique_ptr<FS::App> CreateApp();
 
@@ -25,7 +25,8 @@ int main()
     FS::gEngine.Init();
     const auto app = CreateApp();
     app->Init();
-    
+    FS::Log::Info("Initialized app");
+
     while (FS::gEngine.Renderer().GetWindow().IsRunning())
     {
         FS::gEngine.BeginFrame();
@@ -33,7 +34,7 @@ int main()
         FS::gEngine.Update();
         FS::gEngine.EndFrame();
     }
+    FS::Log::Info("Shutting down app");
     app->Shutdown();
     FS::gEngine.Shutdown();
 }
-

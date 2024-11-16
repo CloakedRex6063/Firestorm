@@ -1,12 +1,12 @@
 #pragma once
+#include "Core/Render/Window.h"
 
 namespace FS
 {
-    class Window;
     class Renderer
     {
     public:
-        Renderer();
+        Renderer() : mWindow(std::make_unique<Window>()) {}
         virtual ~Renderer() = default;
         virtual void BeginFrame() = 0;
         virtual void Render() = 0;

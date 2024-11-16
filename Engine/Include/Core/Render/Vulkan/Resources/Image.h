@@ -1,32 +1,31 @@
 #pragma once
+#include "Core/Render/Vulkan/Tools/Enums.hpp"
 
 namespace FS::VK
 {
-    class Device;
+    class Context;
     class Image
     {
     public:
-        Image(const std::shared_ptr<Device>& device, const vk::Extent2D& extent, const vk::Format& format,
-              const VmaAllocationCreateInfo& allocInfo);
-        ~Image();
+        Image(const std::shared_ptr<Context>& context, VkImage image, ImageType type, VkFormat format);
+        Image(const std::shared_ptr<Context>& context,
+              ImageType type,
+              VkFormat format,
+              VkExtent2D extent,
+              VkImageUsageFlags usageFlags);
 
+        ~Image();
         NON_COPYABLE(Image);
         MOVABLE(Image);
-        
-        operator vk::Image&() const { return *mImage; }
-        [[nodiscard]] vk::raii::ImageView& GetView() const { return *mView; }
-        [[nodiscard]] vk::Extent2D GetExtent() const { return mExtent; }
-        [[nodiscard]] vk::Format GetFormat() const { return mFormat; }
-        [[nodiscard]] VmaAllocation& GetAllocation() const { return *mAllocation; }
+        UNDERLYING(VkImage, Image);
+
+        VkImageView& GetView() { return mImageView; }
 
     private:
-        std::shared_ptr<Device> mDevice;
-        std::unique_ptr<VmaAllocation> mAllocation;
+        std::shared_ptr<Context> mContext;
 
-        std::unique_ptr<vk::Image> mImage;
-        std::unique_ptr<vk::raii::ImageView> mView;
-
-        vk::Extent2D mExtent;
-        vk::Format mFormat;
+        VkImage mImage{};
+        VkImageView mImageView{};
+        VmaAllocation mAllocation{};
     };
-} // namespace FS::VK
+}  // namespace FS::VK

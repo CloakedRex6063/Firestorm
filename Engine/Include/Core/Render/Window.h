@@ -15,9 +15,9 @@ namespace FS
         Window();
 
         [[nodiscard]] bool IsRunning() const;
-        [[nodiscard]] vk::raii::SurfaceKHR CreateSurface(vk::raii::Instance& instance) const;
+        [[nodiscard]] VkSurfaceKHR CreateSurface(const VkInstance& instance) const;
         [[nodiscard]] glm::uvec2 GetSize() const;
-        [[nodiscard]] std::vector<const char*> GetRequiredExtensions() const;
+        [[nodiscard]] std::vector<const char*> RequiredExtensions() const;
         void PollEvents();
 
     private:

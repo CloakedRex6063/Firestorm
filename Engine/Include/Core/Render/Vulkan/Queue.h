@@ -2,22 +2,24 @@
 
 namespace FS::VK
 {
-    class Device;
-    class Swapchain;
     class Queue
     {
     public:
-        Queue(const std::shared_ptr<Device>& device, vk::QueueFlagBits queueType);
-        operator vk::raii::Queue&() const { return *mQueue; }
+        Queue(const VkQueue& queue, const uint32_t familyIndex)
+            : mQueue(queue), mFamilyIndex(familyIndex)
+        {
+        }
+        NON_MOVABLE(Queue);
+        NON_COPYABLE(Queue);
+        UNDERLYING(VkQueue, Queue)
 
-        void SubmitCommand(const vk::SemaphoreSubmitInfo& signalSemaphoreInfo,
-                           const vk::SemaphoreSubmitInfo& waitSemaphoreInfo,
-                           const vk::CommandBufferSubmitInfo& commandBufferSubmitInfo, vk::Fence fence = {}) const;
-        void Present(const Swapchain& swapchain, const vk::raii::Semaphore& semaphore) const;
+        [[nodiscard]] uint32_t GetFamilyIndex() const { return mFamilyIndex; }
+
+        void SubmitQueue(VkCommandBuffer commandBuffer, VkSemaphore waitSemaphore, VkPipelineStageFlags2 waitStageMask,
+                         VkSemaphore signalSemaphore, VkPipelineStageFlags2 signalStageMask, VkFence fence) const;
 
     private:
-        std::shared_ptr<Device> mDevice;
+        VkQueue mQueue;
         uint32_t mFamilyIndex;
-        std::unique_ptr<vk::raii::Queue> mQueue;
     };
 } // namespace FS::VK

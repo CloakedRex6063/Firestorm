@@ -1,7 +1,7 @@
 #version 460
 #extension GL_EXT_buffer_reference : require 
 
-layout (location = 0) out vec3 outColor;
+layout (location = 0) out vec4 outColor;
 layout (location = 1) out vec2 outUV;
 
 struct Vertex
@@ -10,7 +10,7 @@ struct Vertex
     float uvX;
     vec3 normal;
     float uvY;
-    vec3 color;
+    vec4 color;
 };
 
 layout(buffer_reference, std430) readonly buffer VertexBuffer
@@ -28,7 +28,7 @@ void main()
 {
     Vertex v = pushConstants.vertexBuffer.vertices[gl_VertexIndex];
     gl_Position = pushConstants.renderMatrix * vec4(v.position, 1.f);
-    outColor = v.color.xyz;
+    outColor = v.color;
     outUV.x = v.uvX;
     outUV.y = v.uvY;
 }
