@@ -12,6 +12,5 @@ target_compile_definitions(Engine PUBLIC
         EngineShaders="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/")
 
 if (ENABLE_TIDY)
-    set_target_properties(Engine PROPERTIES
-            CXX_CLANG_TIDY "clang-tidy")
+    set_target_properties(Engine PROPERTIES CXX_CLANG_TIDY "clang-tidy")
 endif ()

@@ -13,7 +13,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -finline-functions")
 endif ()
 
-if(CLANG_FORMAT_BIN)
+if (ENABLE_TIDY)
     add_custom_target(
             clang-format
             COMMAND ${CLANG_FORMAT_BIN}
@@ -36,6 +36,27 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 elseif (CMAKE_BUILD_TYPE STREQUAL Release)
     add_compile_definitions(FS_RELEASE)
 endif ()
+
+set(MarkerFile "${CMAKE_BINARY_DIR}/SetupDone.txt")
+
+if(NOT EXISTS "${MarkerFile}")
+    message(STATUS "Setting up dependencies")
+
+    execute_process(
+            COMMAND powershell -Command "Start-Process '${CMAKE_SOURCE_DIR}/Scripts/Setup.bat' -Wait -Verb runAs"
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE error
+    )
+    
+    if(result)
+        message(FATAL_ERROR "Setup.bat execution failed with error: ${error}")
+    endif()
+    
+    file(WRITE "${MarkerFile}" "Setup completed on: ${CMAKE_GENERATOR}")
+else()
+    message(STATUS "Setup.bat has already been executed; skipping.")
+endif()
 
 add_subdirectory(Engine)
 add_subdirectory(Sandbox)
