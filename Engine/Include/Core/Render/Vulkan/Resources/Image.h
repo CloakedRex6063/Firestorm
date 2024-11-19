@@ -12,7 +12,8 @@ namespace FS::VK
               ImageType type,
               VkFormat format,
               VkExtent2D extent,
-              VkImageUsageFlags usageFlags);
+              VkImageUsageFlags usageFlags,
+              VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 
         ~Image();
         NON_COPYABLE(Image);

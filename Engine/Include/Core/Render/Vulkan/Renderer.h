@@ -1,7 +1,8 @@
 #pragma once
-
+#include "Core/Render/Vulkan/Constants.hpp"
 #include "Command.h"
 #include "Sync.h"
+#include "Resources/Model.h"
 
 namespace FS
 {
@@ -10,9 +11,12 @@ namespace FS
 
 namespace FS::VK
 {
+    class ModelManager;
+    class Image;
     class Swapchain;
     class Context;
     class Buffer;
+    class Descriptor;
     class GeometryPipeline;
     class Renderer final : public FS::Renderer
     {
@@ -26,6 +30,7 @@ namespace FS::VK
 
         [[nodiscard]] Context& GetContext() const { return *mContext; }
         [[nodiscard]] Swapchain& GetSwapchain() const { return *mSwapchain; }
+        [[nodiscard]] ModelManager& GetModelManager() const { return *mModelManager; }
         [[nodiscard]] GeometryPipeline& GetGeometryPipeline() const { return *mGeometryPipeline; }
 
     private:
@@ -45,12 +50,10 @@ namespace FS::VK
             Semaphore mPresentSemaphore;
             Command mCommand;
         };
-        std::array<std::unique_ptr<FrameData>, 3> mFrameData;
+        std::array<std::unique_ptr<FrameData>, Constants::MaxFramesInFlight> mFrameData;
         uint32_t mFrameIndex = 0;
-        
-        std::vector<Vertex> mVertices;
-        std::vector<uint32_t> mIndices;
-        std::unique_ptr<Buffer> mVertexBuffer;
-        std::unique_ptr<Buffer> mIndexBuffer;
+
+        std::unique_ptr<Image> mDepthImage;
+        std::unique_ptr<ModelManager> mModelManager;
     };
 }  // namespace FS::VK

@@ -27,11 +27,15 @@ int main()
     app->Init();
     FS::Log::Info("Initialized app");
 
+    std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
     while (FS::gEngine.Renderer().GetWindow().IsRunning())
     {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<float> deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
         FS::gEngine.BeginFrame();
         app->Update();
-        FS::gEngine.Update();
+        FS::gEngine.Tick(deltaTime.count());
         FS::gEngine.EndFrame();
     }
     FS::Log::Info("Shutting down app");

@@ -1,20 +1,24 @@
 #include "Core/Render/Renderer.h"
-#include "Core/Render/Vulkan/Context.h"
-#include "Core/Render/Vulkan/Pipelines/GeometryPipeline.h"
 #include "Core/Render/Vulkan/Renderer.h"
-#include "Core/Render/Vulkan/Resources/Image.h"
+#include "Core/Engine.h"
+#include "Core/Render/Resources/Model.hpp"
+#include "Core/Render/Vulkan/Context.h"
+#include "Core/Render/Vulkan/Queue.h"
 #include "Core/Render/Vulkan/Swapchain.h"
+#include "Core/Render/Vulkan/Pipelines/GeometryPipeline.h"
+#include "Core/Render/Vulkan/Resources/Buffer.h"
+#include "Core/Render/Vulkan/Resources/Descriptor.h"
+#include "Core/Render/Vulkan/Resources/Image.h"
 #include "Core/Render/Vulkan/Tools/Utils.h"
+#include "Core/Systems/FileSystem.h"
 
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <Core/Render/Resources/Model.hpp>
-
-#include "Core/Render/Vulkan/Queue.h"
-#include "Core/Render/Vulkan/Resources/Buffer.h"
 #include "stb_image.h"
+#include "Core/Render/Vulkan/Resources/Model.h"
+#include "Core/Render/Vulkan/Resources/ModelManager.h"
 
 namespace FS::VK
 {
@@ -24,7 +28,8 @@ namespace FS::VK
 
         mContext = std::make_shared<Context>(GetWindow());
         mSwapchain = std::make_unique<Swapchain>(mContext, size);
-        mGeometryPipeline = std::make_unique<GeometryPipeline>(mContext, size);
+        mModelManager = std::make_unique<ModelManager>(mContext);
+        mGeometryPipeline = std::make_unique<GeometryPipeline>(mContext, GetModelManager().GetDescriptor().GetLayout(), size);
 
         for (auto& frame : mFrameData)
         {
@@ -34,34 +39,19 @@ namespace FS::VK
                                                 GetContext().CreateCommand(GetContext().GetGraphicsQueue()));
         }
 
-        mVertices = {
-            Vertex{.mPosition = glm::vec3(-0.5, -0.5, 1), .mColor = glm::vec4(1, 0, 0, 1)},
-            Vertex{.mPosition = glm::vec3(0.5, -0.5, 1), .mColor = glm::vec4(0, 1, 0, 1)},
-            Vertex{.mPosition = glm::vec3(0.5, 0.5, 1), .mColor = glm::vec4(0, 0, 1, 1)},
-            Vertex{.mPosition = glm::vec3(-0.5, 0.5, 1), .mColor = glm::vec4(1, 1, 1, 1)},
-        };
-        mIndices = {0, 1, 2, 2, 3, 0};
-        const auto vertexBufferSize = mVertices.size() * sizeof(Vertex);
-        const auto indexBufferSize = mIndices.size() * sizeof(uint32_t);
+        mDepthImage = std::make_unique<Image>(mContext,
+                                              ImageType::e2D,
+                                              VK_FORMAT_D32_SFLOAT,
+                                              GetSwapchain().GetExtent(),
+                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                              VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        const auto transferCommand = Command(mContext->CreateCommand(mContext->GetTransferQueue()));
-        auto stagingBuffer = Buffer(mContext, BufferType::eStaging, vertexBufferSize + indexBufferSize);
-        const auto mapped = mContext->MapMemory(stagingBuffer.GetAllocation());
-        std::memcpy(mapped, mVertices.data(), vertexBufferSize);
-        std::memcpy((char*)mapped + vertexBufferSize, mIndices.data(), indexBufferSize);
-        mContext->UnmapMemory(stagingBuffer.GetAllocation());
-        mVertexBuffer = std::make_unique<Buffer>(mContext, BufferType::eVertex, vertexBufferSize);
-        mIndexBuffer = std::make_unique<Buffer>(mContext, BufferType::eIndex, vertexBufferSize);
-
-        const auto vertexBufferCopy = Utils::GetBufferCopy2(vertexBufferSize, 0, 0);
-        const auto indexBufferCopy = Utils::GetBufferCopy2(indexBufferSize, vertexBufferSize, 0);
-        transferCommand.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        transferCommand.CopyBufferToBuffer(stagingBuffer, *mVertexBuffer, vertexBufferCopy);
-        transferCommand.CopyBufferToBuffer(stagingBuffer, *mIndexBuffer, indexBufferCopy);
-        transferCommand.End();
-        const auto fence = GetContext().CreateFence();
-        mContext->GetTransferQueue().SubmitQueue(transferCommand, nullptr, 0, nullptr, 0, fence);
-        mContext->WaitForFence(fence, UINT64_MAX);
+        const auto otherModelPath = FS::gEngine.FileSystem().GetPath(FS::Directory::eGameAssets, "Models/DamagedHelmet.glb");
+        const auto modelPath = FS::gEngine.FileSystem().GetPath(FS::Directory::eGameAssets, "Models/chess/ABeautifulGame.gltf");
+        auto model = FS::gEngine.ResourceSystem().LoadModel(modelPath).value();
+        //auto otherModel = FS::gEngine.ResourceSystem().LoadModel(otherModelPath).value();
+        auto modelsToUpload = gEngine.ResourceSystem().GetModelsToUpload();
+        mModelManager->UploadModels(modelsToUpload);
     }
 
     Renderer::~Renderer() { GetContext().WaitIdle(); }
@@ -75,8 +65,14 @@ namespace FS::VK
         Utils::HandleResult(GetSwapchain().AcquireNextImage(renderSemaphore),
                             [&](VkResult)
                             {
-                                mContext->WaitIdle();
+                                GetContext().WaitIdle();
                                 GetSwapchain().RecreateSwapchain(GetWindow().GetSize());
+                                mDepthImage = std::make_unique<Image>(mContext,
+                                                                      ImageType::e2D,
+                                                                      VK_FORMAT_D32_SFLOAT,
+                                                                      GetSwapchain().GetExtent(),
+                                                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                                      VK_IMAGE_ASPECT_DEPTH_BIT);
                             });
     }
 
@@ -86,16 +82,18 @@ namespace FS::VK
         auto& currentImage = GetSwapchain().GetCurrentImage();
 
         command.Reset();
-
         command.Begin(0);
 
-        command.TransitionImageLayout(currentImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        command.TransitionImageLayout(currentImage, ImageLayout::eUndefined, ImageLayout::eColorAttachment);
+        command.TransitionImageLayout(*mDepthImage, ImageLayout::eUndefined, ImageLayout::eDepthAttachment);
 
-        command.BeginRendering(currentImage.GetView(), GetSwapchain().GetExtent());
+        command.BeginRendering(currentImage.GetView(), mDepthImage->GetView(), GetSwapchain().GetExtent());
 
         RenderGeometry(command);
 
-        command.TransitionImageLayout(currentImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+        command.EndRendering();
+
+        command.TransitionImageLayout(currentImage, ImageLayout::eColorAttachment, ImageLayout::ePresent);
 
         command.End();
     }
@@ -106,21 +104,81 @@ namespace FS::VK
         Utils::HandleResult(GetSwapchain().Present(command, renderSemaphore, presentSemaphore, fence),
                             [&](VkResult)
                             {
-                                mContext->WaitIdle();
+                                GetContext().WaitIdle();
                                 GetSwapchain().RecreateSwapchain(GetWindow().GetSize());
+                                mDepthImage = std::make_unique<Image>(mContext,
+                                                                      ImageType::e2D,
+                                                                      VK_FORMAT_D32_SFLOAT,
+                                                                      GetSwapchain().GetExtent(),
+                                                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                                      VK_IMAGE_ASPECT_DEPTH_BIT);
                             });
-        mFrameIndex = (mFrameIndex + 1) % 3;
+        mFrameIndex = (mFrameIndex + 1) % Constants::MaxFramesInFlight;
     }
 
+    static float rotationAngle = 0.0f;
     void Renderer::RenderGeometry(const Command& command) const
     {
         command.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, GetGeometryPipeline());
 
-        command.BindVertexBuffer(0, 1, static_cast<VkBuffer>(*mVertexBuffer), 0ull);
-        command.BindIndexBuffer(*mIndexBuffer, 0ull);
+        const auto size = GetWindow().GetSize();
+        const auto aspect = static_cast<float>(size.x) / static_cast<float>(size.y);
 
-        command.DrawIndexed(mIndices.size());
+        rotationAngle += 0.1f * gEngine.GetDeltaTime();
+        constexpr float cameraRadius = 1.0f;
 
-        command.EndRendering();
+        const auto cameraPosition = glm::vec3(cameraRadius * cos(rotationAngle),  // X-coordinate
+                                             0.0f,                               // Y-coordinate (fixed height)
+                                             cameraRadius * sin(rotationAngle)   // Z-coordinate
+        );
+
+        glm::vec3 modelCenter = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        // Compute the view matrix
+        const auto view = glm::lookAt(cameraPosition, modelCenter, glm::vec3(0, 1, 0));
+
+        auto projection = glm::perspective(glm::radians(45.0f), aspect, 0.01f, 1000.0f);
+        projection[1][1] *= -1;
+
+        for (auto [index, model] : std::views::enumerate(mModelManager->GetModels()))
+        {
+            command.BindIndexBuffer(model.GetIndexBuffer(), 0);
+
+            command.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      GetGeometryPipeline().GetLayout(),
+                                      GetModelManager().GetDescriptor());
+
+            VkBufferDeviceAddressInfo vertexBufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                                                       .buffer = model.GetVertexBuffer()};
+
+            auto parentTransform = glm::mat4(1.0f);
+            for (const auto& nodeIndex : model.GetRootNodeIndices())
+            {
+                auto& node = model.GetNodes()[nodeIndex];
+                const auto& mesh = model.GetMeshes()[node.mMeshIndex];
+                const auto textureIndex = model.GetMaterials()[mesh.mMaterialIndex].mBaseTextureIndex;
+                ModelPushConstant pushConstant{.mMVP = projection * view * (parentTransform * node.mTransform),
+                                               .mVertexAddress = vkGetBufferDeviceAddress(*mContext, &vertexBufferInfo),
+                                               .mBaseTextureIndex = textureIndex};
+                command.SetPushConstants(GetGeometryPipeline().GetLayout(),
+                                         VK_SHADER_STAGE_ALL,
+                                         sizeof(ModelPushConstant),
+                                         &pushConstant);
+                command.DrawIndexed(mesh.mIndexCount, 1, mesh.mIndexOffset, mesh.mVertexOffset);
+                for (const auto& childNodeIndex : node.mChildren)
+                {
+                    auto& childNode = model.GetNodes()[childNodeIndex];
+                    const auto& childMesh = model.GetMeshes()[childNode.mMeshIndex];
+                    const auto childTextureIndex = model.GetMaterials()[childMesh.mMaterialIndex].mBaseTextureIndex;
+                    pushConstant.mMVP = projection * view * (parentTransform * node.mTransform * childNode.mTransform);
+                    pushConstant.mBaseTextureIndex = childTextureIndex;
+                    command.SetPushConstants(GetGeometryPipeline().GetLayout(),
+                                             VK_SHADER_STAGE_ALL,
+                                             sizeof(ModelPushConstant),
+                                             &pushConstant);
+                    command.DrawIndexed(childMesh.mIndexCount, 1, childMesh.mIndexOffset, childMesh.mVertexOffset);
+                }
+            }
+        }
     }
 }  // namespace FS::VK

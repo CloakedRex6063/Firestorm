@@ -1,30 +1,30 @@
 #include "Core/Render/Vulkan/Pipelines/GeometryPipeline.h"
-
-#include <Core/Render/Resources/Model.hpp>
-
 #include "Core/Engine.h"
-#include "Core/FileSystem.h"
+#include "Core/Render/Vulkan/Resources/Model.h"
+#include "Core/Systems/FileSystem.h"
 
 namespace FS::VK
 {
-    GeometryPipeline::GeometryPipeline(const std::shared_ptr<Context>& context, const glm::uvec2& size)
+    GeometryPipeline::GeometryPipeline(const std::shared_ptr<Context>& context,
+                                       VkDescriptorSetLayout setLayout,
+                                       const glm::uvec2& size)
         : mPipelineBuilder(context)
     {
-        const auto vertexShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "triangle.vert.spv");
-        const auto fragmentShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "triangle.frag.spv");
+        const auto vertexShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "mesh.vert.spv");
+        const auto fragmentShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "mesh.frag.spv");
+
+        VkPushConstantRange pushConstantRange = {.stageFlags = VK_SHADER_STAGE_ALL, .size = sizeof(ModelPushConstant)};
+
         mPipelineBuilder.AddVertexShader(vertexShader)
             .AddFragmentShader(fragmentShader)
             .SetTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .SetViewportAndScissor(size)
             .SetPolygonMode(VK_POLYGON_MODE_FILL)
             .SetCullMode(VK_CULL_MODE_BACK_BIT)
-            .SetFrontFace(VK_FRONT_FACE_CLOCKWISE)
-            .AddInputBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-            .AddInputAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, mPosition))
-            .AddInputAttribute(0, 1, VK_FORMAT_R32_SFLOAT, offsetof(Vertex, mUVx))
-            .AddInputAttribute(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, mNormal))
-            .AddInputAttribute(0, 3, VK_FORMAT_R32_SFLOAT, offsetof(Vertex, mUVy))
-            .AddInputAttribute(0, 4, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, mColor))
+            .SetFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+            .SetDescriptorLayouts(setLayout)
+            .SetPushConstants(pushConstantRange)
+            .EnableDepthTest()
             .Build();
     }
 }  // namespace FS::VK

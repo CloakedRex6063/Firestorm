@@ -1,5 +1,5 @@
 #pragma once
-#include <Core/EnginePCH.hpp>
+#include "Core/Render/Vulkan/Constants.hpp"
 
 namespace FS
 {
@@ -39,7 +39,7 @@ namespace FS::VK
 
         VkSwapchainKHR mSwapchain{};
 
-        std::array<std::unique_ptr<Image>, 3> mImages;
+        std::array<std::unique_ptr<Image>, Constants::MaxFramesInFlight> mImages;
         uint32_t mCurrentImageIndex = 0;
         VkExtent2D mExtent{};
     };

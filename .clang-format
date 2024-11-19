@@ -1,6 +1,6 @@
 BasedOnStyle: Google
 Standard: c++17
-SortIncludes: CaseInsensitive
+SortIncludes: Never
 NamespaceIndentation: All
 IndentWidth: 4
 SortUsingDeclarations: false
@@ -17,3 +17,4 @@ ExperimentalAutoDetectBinPacking: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: true
+AllowShortLambdasOnASingleLine: Empty

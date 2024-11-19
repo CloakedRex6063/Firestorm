@@ -1,8 +1,5 @@
-#version 460
+#version  460
 #extension GL_EXT_buffer_reference : require 
-
-layout (location = 0) out vec4 outColor;
-layout (location = 1) out vec2 outUV;
 
 struct Vertex
 {
@@ -18,17 +15,21 @@ layout(buffer_reference, std430) readonly buffer VertexBuffer
     Vertex vertices[];
 };
 
-layout(push_constant) uniform PushConstants
+layout(push_constant) uniform constants
 {
     mat4 renderMatrix;
     VertexBuffer vertexBuffer;
+    int textureIndex;
 } pushConstants;
+
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec2 outUV;
 
 void main() 
 {
     Vertex v = pushConstants.vertexBuffer.vertices[gl_VertexIndex];
-    gl_Position = pushConstants.renderMatrix * vec4(v.position, 1.f);
+    
+    gl_Position = pushConstants.renderMatrix * vec4(v.position, 1.0);
+    outUV = vec2(v.uvX, v.uvY);
     outColor = v.color;
-    outUV.x = v.uvX;
-    outUV.y = v.uvY;
 }

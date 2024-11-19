@@ -1,5 +1,6 @@
 #include "Core/Render/Vulkan/Pipelines/PipelineBuilder.h"
 #include "Core/Render/Vulkan/Context.h"
+#include "Core/Render/Vulkan/Resources/Model.h"
 #include "Core/Render/Vulkan/Tools/Utils.h"
 
 namespace FS::VK
@@ -48,6 +49,8 @@ namespace FS::VK
                             .logicOp = VK_LOGIC_OP_COPY,
                             .attachmentCount = 1,
                             .pAttachments = &mColorBlendAttachment};
+
+        mDepthStencilState = {.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
     }
 
     PipelineBuilder::~PipelineBuilder()
@@ -116,8 +119,8 @@ namespace FS::VK
         mViewport = {
             .width = static_cast<float>(size.x),
             .height = static_cast<float>(size.y),
-            .minDepth = 0.f,
-            .maxDepth = 1.f,
+            .minDepth = 1.f,
+            .maxDepth = 0.f,
         };
 
         mScissor = {.extent = {size.x, size.y}};
@@ -145,6 +148,13 @@ namespace FS::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::SetPushConstants(const ArrayProxy<VkPushConstantRange> constants)
+    {
+        mPipelineLayoutInfo.pushConstantRangeCount = constants.size();
+        mPipelineLayoutInfo.pPushConstantRanges = constants.data();
+        return *this;
+    }
+
 #pragma endregion
 
 #pragma region Optional
@@ -167,6 +177,18 @@ namespace FS::VK
         return *this;
     }
 
+    PipelineBuilder& PipelineBuilder::EnableDepthTest()
+    {
+        mDepthStencilState.depthTestEnable = true;
+        mDepthStencilState.depthWriteEnable = true;
+        mDepthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+        mDepthStencilState.depthBoundsTestEnable = false;
+        mDepthStencilState.stencilTestEnable = false;
+        mDepthStencilState.minDepthBounds = 0.f;
+        mDepthStencilState.maxDepthBounds = 1.f;
+        return *this;
+    }
+
 #pragma endregion
 
     void PipelineBuilder::Build()
@@ -177,16 +199,12 @@ namespace FS::VK
         mDynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
         mDynamicState.pDynamicStates = dynamicStates.data();
 
-        mVertexInputState.pVertexAttributeDescriptions = mVertexAttributeDescriptions.data();
-        mVertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(mVertexAttributeDescriptions.size());
-        mVertexInputState.pVertexBindingDescriptions = mVertexInputBindingDescriptions.data();
-        mVertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(mVertexInputBindingDescriptions.size());
-
         // change to VK_FORMAT_R16G16B16A16_SFLOAT when using a render image
         constexpr auto format = VK_FORMAT_B8G8R8A8_UNORM;
         VkPipelineRenderingCreateInfo renderInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                                                  .colorAttachmentCount = 1,
-                                                 .pColorAttachmentFormats = &format};
+                                                 .pColorAttachmentFormats = &format,
+                                                 .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT};
 
         const VkGraphicsPipelineCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                          .pNext = &renderInfo,
@@ -197,7 +215,7 @@ namespace FS::VK
                                                          .pViewportState = &mViewportState,
                                                          .pRasterizationState = &mRasterizationState,
                                                          .pMultisampleState = &mMsaaState,
-                                                         .pDepthStencilState = nullptr,
+                                                         .pDepthStencilState = &mDepthStencilState,
                                                          .pColorBlendState = &mColorBlendState,
                                                          .pDynamicState = &mDynamicState,
                                                          .layout = mPipelineLayout};
@@ -208,4 +226,5 @@ namespace FS::VK
             vkDestroyShaderModule(*mContext, shader, nullptr);
         }
     }
+
 }  // namespace FS::VK

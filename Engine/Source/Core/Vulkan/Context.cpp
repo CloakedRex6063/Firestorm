@@ -1,12 +1,13 @@
 #include "Core/Render/Vulkan/Context.h"
 #include "Core/Engine.h"
-#include "Core/FileSystem.h"
+#include "Core/Systems/FileSystem.h"
 #include "Core/Render/Vulkan/Command.h"
 #include "Core/Render/Vulkan/Queue.h"
-#include "Core/Render/Vulkan/Resources/Buffer.h"
 #include "Core/Render/Vulkan/Sync.h"
 #include "Core/Render/Vulkan/Tools/Utils.h"
 #include "Core/Render/Window.h"
+#include "Core/Render/Vulkan/Constants.hpp"
+#include "Core/Render/Vulkan/Resources/Descriptor.h"
 
 namespace FS::VK
 {
@@ -63,14 +64,16 @@ namespace FS::VK
     {
         mSurface = window.CreateSurface(mInstance);
         vkb::PhysicalDeviceSelector selector(mInstance);
-        VkPhysicalDeviceVulkan12Features features12{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-            .descriptorIndexing = true,
-            .descriptorBindingPartiallyBound = true,
-            .descriptorBindingVariableDescriptorCount = true,
-            .runtimeDescriptorArray = true,
-            .bufferDeviceAddress = true
-        };
+        VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+                                                    .descriptorIndexing = true,
+                                                    .descriptorBindingUniformBufferUpdateAfterBind = true,
+                                                    .descriptorBindingSampledImageUpdateAfterBind = true,
+                                                    .descriptorBindingStorageImageUpdateAfterBind = true,
+                                                    .descriptorBindingStorageBufferUpdateAfterBind = true,
+                                                    .descriptorBindingPartiallyBound = true,
+                                                    .descriptorBindingVariableDescriptorCount = true,
+                                                    .runtimeDescriptorArray = true,
+                                                    .bufferDeviceAddress = true};
         VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
                                                     .synchronization2 = true,
                                                     .dynamicRendering = true};
@@ -180,7 +183,10 @@ namespace FS::VK
         return {image, allocation};
     }
 
-    VkImageView Context::CreateImageView(VkImage image, const ImageType viewType, const VkFormat format) const
+    VkImageView Context::CreateImageView(VkImage image,
+                                         const ImageType viewType,
+                                         const VkFormat format,
+                                         const VkImageAspectFlags aspectFlags) const
     {
         VkImageViewType vkType;
         switch (viewType)
@@ -206,46 +212,48 @@ namespace FS::VK
                                                           VK_COMPONENT_SWIZZLE_IDENTITY,
                                                           VK_COMPONENT_SWIZZLE_IDENTITY,
                                                           VK_COMPONENT_SWIZZLE_IDENTITY},
-                                              .subresourceRange = Utils::GetSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT)};
+                                              .subresourceRange = Utils::GetSubresourceRange(aspectFlags)};
         VkImageView imageView;
         vkCreateImageView(mDevice, &imageInfo, nullptr, &imageView);
         return imageView;
     }
 
     std::tuple<VkBuffer, VmaAllocation, VmaAllocationInfo> Context::CreateBuffer(const BufferType bufferType,
-                                                                                 const uint32_t allocSize) const
+                                                                                 const uint32_t allocSize,
+                                                                                 const VkBufferUsageFlags usageFlags) const
     {
-        VkBufferUsageFlags usageFlags = 0;
+        VkBufferUsageFlags mainUsageFlags = 0;
         VmaMemoryUsage memoryUsage{};
         VkMemoryPropertyFlags requiredMemoryFlags = 0;
         switch (bufferType)
         {
             case BufferType::eStaging:
-                usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
                 requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 break;
             case BufferType::eIndex:
-                usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                mainUsageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
                 break;
             case BufferType::eVertex:
-                usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                mainUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                                 VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
                 break;
             case BufferType::eGPU:
-                usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
                 break;
             case BufferType::eCPU:
-                usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
                 requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
 
         const VkBufferCreateInfo bufferCreateInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                                      .size = allocSize,
-                                                     .usage = usageFlags,
+                                                     .usage = mainUsageFlags | usageFlags,
                                                      .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
         VkBuffer buffer;
         const VmaAllocationCreateInfo createInfo{.usage = memoryUsage, .requiredFlags = requiredMemoryFlags};
@@ -270,6 +278,69 @@ namespace FS::VK
     }
 
     void Context::UnmapMemory(VmaAllocation allocation) const { vmaUnmapMemory(mAllocator, allocation); }
+
+    VkDescriptorPool Context::CreateDescriptorPool(const uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const
+    {
+        const VkDescriptorPoolCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                                       .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+                                                       .maxSets = maxSets,
+                                                       .poolSizeCount = poolSizes.size(),
+                                                       .pPoolSizes = poolSizes.data()};
+        VkDescriptorPool descriptorPool;
+        vkCreateDescriptorPool(mDevice, &createInfo, nullptr, &descriptorPool);
+        return descriptorPool;
+    }
+
+    VkDescriptorSetLayout Context::CreateDescriptorSetLayout(const ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const
+    {
+        constexpr VkDescriptorBindingFlags flags =
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        std::vector bindingsFlags(bindings.size(), flags);
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingsInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount = bindings.size(),
+            .pBindingFlags = bindingsFlags.data()};
+
+        const VkDescriptorSetLayoutCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                                                            .pNext = &bindingsInfo,
+                                                            .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+                                                            .bindingCount = bindings.size(),
+                                                            .pBindings = bindings.data()};
+        VkDescriptorSetLayout descriptorSetLayout;
+        vkCreateDescriptorSetLayout(mDevice, &createInfo, nullptr, &descriptorSetLayout);
+        return descriptorSetLayout;
+    }
+
+    VkDescriptorSet Context::AllocateDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout layout) const
+    {
+        const VkDescriptorSetAllocateInfo allocInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                       .descriptorPool = pool,
+                                                       .descriptorSetCount = 1,
+                                                       .pSetLayouts = &layout};
+        VkDescriptorSet descriptorSet;
+        vkAllocateDescriptorSets(mDevice, &allocInfo, &descriptorSet);
+        return descriptorSet;
+    }
+
+    void Context::UpdateDescriptorImage(VkSampler sampler,
+                                        VkImageView view,
+                                        VkDescriptorSet set,
+                                        const uint32_t arrayIndex) const
+    {
+        VkDescriptorImageInfo imageInfo{.sampler = sampler,
+                                        .imageView = view,
+                                        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        const VkWriteDescriptorSet writeInfo = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = set,
+            .dstBinding = Constants::SamplerBinding,
+            .dstArrayElement = arrayIndex,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &imageInfo,
+        };
+        vkUpdateDescriptorSets(mDevice, 1, &writeInfo, 0, nullptr);
+    };
 
     VkShaderModule Context::CreateShaderModule(const std::string& codePath) const
     {

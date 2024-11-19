@@ -20,7 +20,7 @@ namespace FS::VK
     }
     void Command::End() const { vkEndCommandBuffer(mCommandBuffer); }
 
-    void Command::BeginRendering(const VkImageView& colorImageView, const VkExtent2D& extent) const
+    void Command::BeginRendering(VkImageView colorImageView, VkImageView depthImageView, const VkExtent2D& extent) const
     {
         VkRenderingAttachmentInfo colorAttachment = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -30,13 +30,23 @@ namespace FS::VK
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .clearValue = VkClearValue({0.0f, 0.0f, 0.0f, 1.0f}),
         };
+
+        VkRenderingAttachmentInfo depthAttachment = {
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .imageView = depthImageView,
+            .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .clearValue = VkClearValue({0.0f, 0.0f, 0.0f, 0.0f}),
+        };
+
         const auto renderArea = VkRect2D(VkOffset2D(0, 0), extent);
         const VkRenderingInfo renderingInfo = {.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
                                                .renderArea = renderArea,
                                                .layerCount = 1,
                                                .colorAttachmentCount = 1,
                                                .pColorAttachments = &colorAttachment,
-                                               .pDepthAttachment = nullptr,
+                                               .pDepthAttachment = &depthAttachment,
                                                .pStencilAttachment = nullptr};
         vkCmdBeginRendering(mCommandBuffer, &renderingInfo);
         SetViewportAndScissor(extent);
@@ -59,6 +69,14 @@ namespace FS::VK
         vkCmdDrawIndexed(mCommandBuffer, indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
     }
 
+    void Command::DrawIndexedIndirect(VkBuffer buffer,
+                                      const uint64_t offset,
+                                      const uint32_t drawCount,
+                                      const uint32_t stride) const
+    {
+        vkCmdDrawIndexedIndirect(mCommandBuffer, buffer, offset, drawCount, stride);
+    }
+
     void Command::EndRendering() const { vkCmdEndRendering(mCommandBuffer); }
 
     void Command::SetViewportAndScissor(const VkExtent2D& extent) const
@@ -68,8 +86,8 @@ namespace FS::VK
             .y = 0.0f,
             .width = static_cast<float>(extent.width),
             .height = static_cast<float>(extent.height),
-            .minDepth = 0.f,
-            .maxDepth = 1.f,
+            .minDepth = 1.f,
+            .maxDepth = 0.f,
         };
 
         const VkRect2D scissor = {.extent = extent};
@@ -95,20 +113,37 @@ namespace FS::VK
         vkCmdBindIndexBuffer(mCommandBuffer, mIndexBuffer, offset, VK_INDEX_TYPE_UINT32);
     }
 
-    void Command::TransitionImageLayout(VkImage currentImage,
-                                        const VkImageLayout oldLayout,
-                                        const VkImageLayout newLayout) const
+    void Command::BindDescriptorSet(const VkPipelineBindPoint bindPoint,
+                                    VkPipelineLayout pipelineLayout,
+                                    VkDescriptorSet set) const
     {
+        vkCmdBindDescriptorSets(mCommandBuffer, bindPoint, pipelineLayout, 0, 1, &set, 0, nullptr);
+    }
+
+    void Command::SetPushConstants(const VkPipelineLayout layout,
+                                   const VkShaderStageFlags stageFlags,
+                                   const uint32_t size,
+                                   const void* data) const
+    {
+        vkCmdPushConstants(mCommandBuffer, layout, stageFlags, 0, size, data);
+    }
+
+    void Command::TransitionImageLayout(VkImage currentImage, const ImageLayout oldLayout, const ImageLayout newLayout) const
+    {
+        const auto vkOldLayout = Utils::GetImageLayout(oldLayout);
+        const auto vkNewLayout = Utils::GetImageLayout(newLayout);
+
         VkImageMemoryBarrier2 imageMemoryBarrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             .srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT,
             .dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
             .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
-            .oldLayout = oldLayout,
-            .newLayout = newLayout,
+            .oldLayout = vkOldLayout,
+            .newLayout = vkNewLayout,
             .image = currentImage,
-            .subresourceRange = Utils::GetSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT),
+            .subresourceRange = Utils::GetSubresourceRange(
+                newLayout == ImageLayout::eDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
         };
 
         const VkDependencyInfo dependencyInfo = {.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -126,5 +161,20 @@ namespace FS::VK
                                                   .regionCount = bufferCopy.size(),
                                                   .pRegions = bufferCopy.data()};
         vkCmdCopyBuffer2(mCommandBuffer, &copyBufferInfo);
+    }
+
+    void Command::CopyBufferToImage(VkBuffer srcBuffer,
+                                    VkImage dstImage,
+                                    const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const
+    {
+        const VkCopyBufferToImageInfo2 copyImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+            .srcBuffer = srcBuffer,
+            .dstImage = dstImage,
+            .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .regionCount = bufferImageCopies.size(),
+            .pRegions = bufferImageCopies.data(),
+        };
+        vkCmdCopyBufferToImage2(mCommandBuffer, &copyImageInfo);
     };
 }  // namespace FS::VK

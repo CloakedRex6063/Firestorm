@@ -25,6 +25,12 @@ namespace FS::VK
         return subresourceRange;
     }
 
+    VkImageSubresourceLayers Utils::GetSubresourceLayers(const VkImageAspectFlags aspectMask)
+    {
+        const VkImageSubresourceLayers subresourceLayers = {.aspectMask = aspectMask, .layerCount = 1};
+        return subresourceLayers;
+    };
+
     VkPipelineShaderStageCreateInfo Utils::CreateShaderStageInfo(const VkShaderStageFlagBits stage, VkShaderModule shaderModule)
     {
         const VkPipelineShaderStageCreateInfo shaderStageInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -41,6 +47,64 @@ namespace FS::VK
                                      .dstOffset = dstOffset,
                                      .size = size};
         return copy2;
+    }
+
+    VkBufferImageCopy2 Utils::GetBufferImageCopy2(const uint64_t bufferOffset,
+                                                  const VkOffset2D imageOffset,
+                                                  const VkExtent2D extent)
+    {
+        const VkBufferImageCopy2 copy2 = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+            .bufferOffset = bufferOffset,
+            .imageSubresource = GetSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+            .imageOffset = VkOffset3D(imageOffset.x, imageOffset.y, 0),
+            .imageExtent = VkExtent3D(extent.width, extent.height, 1),
+        };
+        return copy2;
+    }
+    
+    VkImageLayout Utils::GetImageLayout(const ImageLayout layout)
+    {
+        switch (layout)
+        {
+            case ImageLayout::eUndefined:
+                return VK_IMAGE_LAYOUT_UNDEFINED;
+            case ImageLayout::eGeneral:
+                return VK_IMAGE_LAYOUT_GENERAL;
+            case ImageLayout::eColorAttachment:
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            case ImageLayout::eDepthStencilAttachment:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            case ImageLayout::eDepthStencilReadOnly:
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            case ImageLayout::eShaderReadOnly:
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            case ImageLayout::eTransferSrc:
+                return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            case ImageLayout::eTransferDst:
+                return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            case ImageLayout::ePreInitialised:
+                return VK_IMAGE_LAYOUT_PREINITIALIZED;
+            case ImageLayout::eDepthReadOnlyStencilAttachment:
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+            case ImageLayout::eDepthAttachmentStencilReadOnly:
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+            case ImageLayout::eDepthAttachment:
+                return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            case ImageLayout::eDepthReadOnly:
+                return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+            case ImageLayout::eStencilAttachment:
+                return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+            case ImageLayout::eStencilReadOnly:
+                return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+            case ImageLayout::eReadOnly:
+                return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+            case ImageLayout::eAttachment:
+                return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+            case ImageLayout::ePresent:
+                return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        }
+        return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
     std::string_view Utils::VkResultToString(const VkResult result)

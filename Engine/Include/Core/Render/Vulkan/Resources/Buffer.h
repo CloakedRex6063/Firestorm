@@ -7,7 +7,7 @@ namespace FS::VK
     class Buffer
     {
     public:
-        Buffer(const std::shared_ptr<Context>& context, BufferType type, uint32_t allocSize);
+        Buffer(const std::shared_ptr<Context>& context, BufferType type, uint32_t allocSize, VkBufferUsageFlags usageFlags = 0);
         ~Buffer();
         NON_COPYABLE(Buffer);
         MOVABLE(Buffer);

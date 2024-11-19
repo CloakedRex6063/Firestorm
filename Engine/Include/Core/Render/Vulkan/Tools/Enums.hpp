@@ -1,17 +1,49 @@
 #pragma once
 
-enum class ImageType : uint8_t
+namespace FS::VK
 {
-    e1D,
-    e2D,
-    e3D
-};
+    enum class ImageType : uint8_t
+    {
+        e1D,
+        e2D,
+        e3D
+    };
 
-enum class BufferType : uint8_t
-{
-    eStaging,
-    eVertex,
-    eIndex,
-    eGPU,
-    eCPU
-};
+    enum class BufferType : uint8_t
+    {
+        eStaging,
+        eVertex,
+        eIndex,
+        eGPU,
+        eCPU
+    };
+
+    enum class ImageLayout : uint8_t
+    {
+        eUndefined,
+        eGeneral,
+        eColorAttachment,
+        eDepthStencilAttachment,
+        eDepthStencilReadOnly,
+        eShaderReadOnly,
+        eTransferSrc,
+        eTransferDst,
+        ePreInitialised,
+        eDepthReadOnlyStencilAttachment,
+        eDepthAttachmentStencilReadOnly,
+        eDepthAttachment,
+        eDepthReadOnly,
+        eStencilAttachment,
+        eStencilReadOnly,
+        eReadOnly,
+        eAttachment,
+        ePresent,
+    };
+
+    enum class MaterialType : uint8_t
+    {
+        eOpaque,
+        eTransparent
+    };
+    
+}  // namespace FS::VK

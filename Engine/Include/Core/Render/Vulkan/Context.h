@@ -8,6 +8,7 @@ namespace FS
 
 namespace FS::VK
 {
+    class Descriptor;
     class Fence;
     class Semaphore;
     class Queue;
@@ -42,14 +43,23 @@ namespace FS::VK
                                                                     VkFormat format,
                                                                     VkExtent2D extent,
                                                                     VkImageUsageFlags usage) const;
-        [[nodiscard]] VkImageView CreateImageView(VkImage image, ImageType viewType, VkFormat format) const;
+        [[nodiscard]] VkImageView CreateImageView(VkImage image,
+                                                  ImageType viewType,
+                                                  VkFormat format,
+                                                  VkImageAspectFlags aspectFlags) const;
 
         [[nodiscard]] std::tuple<VkBuffer, VmaAllocation, VmaAllocationInfo> CreateBuffer(BufferType bufferType,
-                                                                                          uint32_t allocSize) const;
+                                                                                          uint32_t allocSize,
+                                                                                          VkBufferUsageFlags usageFlags) const;
         [[nodiscard]] VmaAllocationInfo GetAllocationInfo(VmaAllocation allocation) const;
 
         [[nodiscard]] void* MapMemory(VmaAllocation allocation) const;
         void UnmapMemory(VmaAllocation allocation) const;
+
+        [[nodiscard]] VkDescriptorPool CreateDescriptorPool(uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const;
+        [[nodiscard]] VkDescriptorSetLayout CreateDescriptorSetLayout(ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const;
+        [[nodiscard]] VkDescriptorSet AllocateDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout layout) const;
+        void UpdateDescriptorImage(VkSampler sampler, VkImageView view, VkDescriptorSet set, uint32_t arrayIndex) const;
 
         [[nodiscard]] VkShaderModule CreateShaderModule(const std::string& codePath) const;
         [[nodiscard]] VkPipeline CreateGraphicsPipeline(const VkGraphicsPipelineCreateInfo& createInfo) const;
@@ -71,11 +81,12 @@ namespace FS::VK
         vkb::PhysicalDevice mPhysicalDevice;
         vkb::Device mDevice;
         VmaAllocator mAllocator{};
-
+        
         std::shared_ptr<Queue> mGraphicsQueue;
         std::shared_ptr<Queue> mComputeQueue;
         std::shared_ptr<Queue> mTransferQueue;
 
         VkSurfaceKHR mSurface{};
+        
     };
 }  // namespace FS::VK

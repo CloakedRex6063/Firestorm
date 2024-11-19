@@ -7,3 +7,6 @@
 [submodule "Engine/External/VKB"]
 	path = Engine/External/VKB
 	url = https://github.com/charles-lunarg/vk-bootstrap
+[submodule "Engine/External/ENTT"]
+	path = Engine/External/ENTT
+	url = https://github.com/skypjack/entt

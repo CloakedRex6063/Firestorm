@@ -3,9 +3,13 @@
 
 namespace FS::VK
 {
-    Buffer::Buffer(const std::shared_ptr<Context>& context, const BufferType type, const uint32_t allocSize) : mContext(context)
+    Buffer::Buffer(const std::shared_ptr<Context>& context,
+                   const BufferType type,
+                   const uint32_t allocSize,
+                   const VkBufferUsageFlags usageFlags)
+        : mContext(context)
     {
-        std::tie(mBuffer, mAllocation, mAllocationInfo) = mContext->CreateBuffer(type, allocSize);
+        std::tie(mBuffer, mAllocation, mAllocationInfo) = mContext->CreateBuffer(type, allocSize, usageFlags);
     }
 
     Buffer::~Buffer()

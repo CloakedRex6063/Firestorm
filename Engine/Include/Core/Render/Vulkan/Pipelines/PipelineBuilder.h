@@ -23,8 +23,7 @@ namespace FS::VK
 #pragma endregion
 
 #pragma region Optional
-        template <typename PushConstants>
-        PipelineBuilder& SetPushConstants(ArrayProxy<PushConstants> constants);
+        PipelineBuilder& SetPushConstants(ArrayProxy<VkPushConstantRange> constants);
         PipelineBuilder& SetDescriptorLayouts(ArrayProxy<VkDescriptorSetLayout> setLayouts);
 
         PipelineBuilder& AddInputBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate);
@@ -32,6 +31,7 @@ namespace FS::VK
         
         PipelineBuilder& EnableMSAA(VkSampleCountFlagBits sampleCount);
         PipelineBuilder& EnableBlending();
+        PipelineBuilder& EnableDepthTest();
 #pragma endregion
 
         void Build();
@@ -53,17 +53,10 @@ namespace FS::VK
         VkPipelineMultisampleStateCreateInfo mMsaaState{};
         VkPipelineColorBlendAttachmentState mColorBlendAttachment{};
         VkPipelineColorBlendStateCreateInfo mColorBlendState{};
+        VkPipelineDepthStencilStateCreateInfo mDepthStencilState{};
         VkPipelineLayoutCreateInfo mPipelineLayoutInfo{};
 
         VkPipeline mPipeline = nullptr;
         VkPipelineLayout mPipelineLayout = nullptr;
     };
-
-    template <typename PushConstants>
-    PipelineBuilder& PipelineBuilder::SetPushConstants(ArrayProxy<PushConstants> constants)
-    {
-        mPipelineLayoutInfo.pushConstantRangeCount = constants.size();
-        mPipelineLayoutInfo.pPushConstantRanges = constants.data();
-        return *this;
-    }
 }  // namespace FS::VK
