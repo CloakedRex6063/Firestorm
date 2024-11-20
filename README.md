@@ -1,3 +1,5 @@
+![Windows](https://github.com/CloakedRex6063/Firestorm/actions/workflows/windows.yml/badge.svg)
+
 Firestorm is a 3D game engine powered by Vulkan.
 
 Setup:
