@@ -37,34 +37,6 @@ elseif (CMAKE_BUILD_TYPE STREQUAL Release)
     add_compile_definitions(FS_RELEASE)
 endif ()
 
-if(DEFINED ENV{GITHUB_ACTIONS})
-    message(STATUS "Running in GitHub Actions!")
-else()
-    set(MarkerFile "${CMAKE_BINARY_DIR}/SetupDone.txt")
-
-    if(NOT EXISTS "${MarkerFile}")
-        message(STATUS "Setting up dependencies")
-
-        execute_process(
-                COMMAND powershell -Command "Start-Process '${CMAKE_SOURCE_DIR}/Scripts/Setup.bat' -Wait -Verb runAs"
-                RESULT_VARIABLE result
-                OUTPUT_VARIABLE output
-                ERROR_VARIABLE error
-        )
-
-        if(result)
-            message(FATAL_ERROR "Setup.bat execution failed with error: ${error}")
-        endif()
-
-        file(WRITE "${MarkerFile}" "Setup completed on: ${CMAKE_GENERATOR}")
-
-        message(FATAL_ERROR "Please restart your ide and configure again to detect Vulkan")
-
-    else()
-        message(STATUS "Setup.bat has already been executed; skipping.")
-    endif()
-endif()
-
 add_subdirectory(Engine)
 add_subdirectory(Sandbox)
 

@@ -1,4 +1,4 @@
-#include "Core/Systems/ECS.h"
+/*#include "Core/Systems/ECS.h"
 
 namespace FS
 {
@@ -41,4 +41,4 @@ namespace FS
     std::span<Entity>& ECS::GetChildren(Entity entity) {}
     bool ECS::AddChild(Entity parent, Entity child) {}
     bool ECS::RemoveChild(Entity parent, Entity child) {}
-}  // namespace FS
+}  // namespace FS*/
