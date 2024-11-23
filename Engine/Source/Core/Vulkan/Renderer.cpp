@@ -47,9 +47,7 @@ namespace FS::VK
                                               VK_IMAGE_ASPECT_DEPTH_BIT);
 
         const auto otherModelPath = FS::gEngine.FileSystem().GetPath(FS::Directory::eGameAssets, "Models/DamagedHelmet.glb");
-        const auto modelPath = FS::gEngine.FileSystem().GetPath(FS::Directory::eGameAssets, "Models/chess/ABeautifulGame.gltf");
-        auto model = FS::gEngine.ResourceSystem().LoadModel(modelPath).value();
-        //auto otherModel = FS::gEngine.ResourceSystem().LoadModel(otherModelPath).value();
+        auto otherModel = FS::gEngine.ResourceSystem().LoadModel(otherModelPath).value();
         auto modelsToUpload = gEngine.ResourceSystem().GetModelsToUpload();
         mModelManager->UploadModels(modelsToUpload);
     }
@@ -125,11 +123,11 @@ namespace FS::VK
         const auto aspect = static_cast<float>(size.x) / static_cast<float>(size.y);
 
         rotationAngle += 0.1f * gEngine.GetDeltaTime();
-        constexpr float cameraRadius = 1.0f;
+        constexpr float cameraRadius = 5.0f;
 
         const auto cameraPosition = glm::vec3(cameraRadius * cos(rotationAngle),  // X-coordinate
-                                             0.0f,                               // Y-coordinate (fixed height)
-                                             cameraRadius * sin(rotationAngle)   // Z-coordinate
+                                              0.0f,                               // Y-coordinate (fixed height)
+                                              cameraRadius * sin(rotationAngle)   // Z-coordinate
         );
 
         glm::vec3 modelCenter = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -164,7 +162,7 @@ namespace FS::VK
                                          VK_SHADER_STAGE_ALL,
                                          sizeof(ModelPushConstant),
                                          &pushConstant);
-                command.DrawIndexed(mesh.mIndexCount, 1, mesh.mIndexOffset, mesh.mVertexOffset);
+                command.DrawIndexed(mesh.mIndexCount, 1, mesh.mIndexOffset, static_cast<int>(mesh.mVertexOffset));
                 for (const auto& childNodeIndex : node.mChildren)
                 {
                     auto& childNode = model.GetNodes()[childNodeIndex];
@@ -176,7 +174,10 @@ namespace FS::VK
                                              VK_SHADER_STAGE_ALL,
                                              sizeof(ModelPushConstant),
                                              &pushConstant);
-                    command.DrawIndexed(childMesh.mIndexCount, 1, childMesh.mIndexOffset, childMesh.mVertexOffset);
+                    command.DrawIndexed(childMesh.mIndexCount,
+                                        1,
+                                        childMesh.mIndexOffset,
+                                        static_cast<int>(childMesh.mVertexOffset));
                 }
             }
         }
