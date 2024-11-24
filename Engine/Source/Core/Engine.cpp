@@ -1,7 +1,10 @@
 #include "Core/Engine.h"
-#include "Core/Systems/FileSystem.h"
+#include "Core/FileSystem.h"
 #include "Core/Render/Vulkan/VulkanRenderer.h"
-#include "Core/Systems/ResourceSystem.h"
+#include "Core/ECS.h"
+#include "Core/ResourceSystem.h"
+#include "Systems/CameraSystem.h"
+#include "Tools/Log.h"
 
 namespace FS
 {
@@ -11,8 +14,11 @@ namespace FS
     {
         mLog = std::make_shared<FS::Log>();
         mFileSystem = std::make_shared<FS::FileSystem>();
+        mECS = std::make_shared<FS::ECS>();
         mResourceSystem = std::make_shared<FS::ResourceSystem>();
         mRenderer = std::make_shared<VulkanRenderer>();
+
+        gEngine.AddSystem<CameraSystem>();
         Log::Info("Initialised engine");
     }
 
@@ -29,5 +35,9 @@ namespace FS
         Renderer().Render();
     }
 
-    void Engine::EndFrame() const { Renderer().EndFrame(); }
+    void Engine::EndFrame() const
+    {
+        Renderer().EndFrame();
+        ECS().EndFrame();
+    }
 }  // namespace FS

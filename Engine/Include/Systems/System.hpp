@@ -5,13 +5,14 @@ namespace FS
     class System
     {
     public:
+        System() = default;
         virtual ~System() = default;
         NON_COPYABLE(System);
-        NON_MOVABLE(System);
+        MOVABLE(System);
 
         virtual void Init() {}
-        virtual void Update(float) {}
-        virtual void FixedUpdate(float) {}
+        virtual void Update(float /*deltaTime*/) {}
+        virtual void FixedUpdate(float /*deltaTime*/) {}
         virtual void BeginFrame() {}
         virtual void EndFrame() {}
         virtual void Shutdown() {}
@@ -27,8 +28,20 @@ namespace FS
                                       });
         }
 
+        bool operator==(const System& other) const { return mName == other.mName; }
+
+        std::string mName;
+
     protected:
         friend class EngineClass;
-        System() = default;
     };
-}  // namespace bee
+}  // namespace FS
+
+template <>
+struct std::hash<FS::System>
+{
+    size_t operator()(const FS::System& system) const noexcept
+    {
+        return hash<std::string>()(system.mName); 
+    }
+};

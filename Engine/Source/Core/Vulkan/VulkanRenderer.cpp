@@ -8,15 +8,17 @@
 #include "Core/Render/Vulkan/Resources/VulkanDescriptor.h"
 #include "Core/Render/Vulkan/Resources/VulkanImage.h"
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
-#include "Core/Systems/FileSystem.h"
+#include "Core/FileSystem.h"
+#include "Core/ResourceSystem.h"
+#include "Core/Render/Vulkan/Resources/VulkanModel.h"
+#include "Core/Render/Vulkan/Resources/VulkanResourceLoader.h"
+#include "Systems/CameraSystem.h"
 
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "Core/Render/Vulkan/Resources/VulkanModel.h"
-#include "Core/Render/Vulkan/Resources/VulkanResourceLoader.h"
 
 namespace FS
 {
@@ -114,32 +116,13 @@ namespace FS
         mFrameIndex = (mFrameIndex + 1) % Constants::MaxFramesInFlight;
     }
 
-    static float rotationAngle = 0.0f;
-
     void VulkanRenderer::RenderGeometry(const VulkanCommand& command) const
     {
         command.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, GetGeometryPipeline());
+        
+        const auto view = gEngine.GetSystem<CameraSystem>().GetViewMatrix();
+        const auto projection = gEngine.GetSystem<CameraSystem>().GetProjectionMatrix();
 
-        const auto size = GetWindow().GetSize();
-        const auto aspect = static_cast<float>(size.x) / static_cast<float>(size.y);
-
-        rotationAngle += 0.1f * gEngine.GetDeltaTime();
-        constexpr float cameraRadius = 5.0f;
-
-        const auto cameraPosition = glm::vec3(cameraRadius * cos(rotationAngle),
-                                              // X-coordinate
-                                              0.0f,
-                                              // Y-coordinate (fixed height)
-                                              cameraRadius * sin(rotationAngle) // Z-coordinate
-            );
-
-        auto modelCenter = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        // Compute the view matrix
-        const auto view = glm::lookAt(cameraPosition, modelCenter, glm::vec3(0, 1, 0));
-
-        auto projection = glm::perspective(glm::radians(45.0f), aspect, 0.01f, 1000.0f);
-        projection[1][1] *= -1;
 
         for (auto [index, model] : std::views::enumerate(mModelManager->GetModels()))
         {

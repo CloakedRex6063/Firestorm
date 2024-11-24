@@ -1,20 +1,25 @@
 #pragma once
-#include "Systems/System.hpp"
+#include "entt/entt.hpp"
 
 namespace FS
 {
     class ECS
     {
     public:
-        std::shared_ptr<Registry> CreateRegistry();
+        ECS() = default;
+        NON_MOVABLE(ECS)
+        NON_COPYABLE(ECS)
+        
+        void EndFrame();
+
         Registry& GetRegistry();
 
         Entity CreateEntity(const std::string& name);
         void DestroyEntity(Entity entity);
-        bool IsValidEntity(Entity entity);
+        [[nodiscard]] bool IsValidEntity(Entity entity) const;
 
-        std::optional<Entity> GetParent(Entity entity);
-        std::span<Entity>& GetChildren(Entity entity);
+        [[nodiscard]] std::optional<Entity> GetParent(Entity entity);
+        [[nodiscard]] std::span<Entity> GetChildren(Entity entity);
         bool AddChild(Entity parent, Entity child);
         bool RemoveChild(Entity parent, Entity child);
 
@@ -23,17 +28,18 @@ namespace FS
         template <class... Component>
         void RemoveComponents(Entity entity);
         template <class... Component>
-        bool HasComponents(Entity entity);
+        [[nodiscard]] bool HasComponents(Entity entity);
         template <class... Component>
-        bool HasAnyComponent(Entity entity);
+        [[nodiscard]] bool HasAnyComponent(Entity entity);
         template <class... Component>
-        std::tuple<Component...> GetComponent(Entity entity);
+        decltype(auto) GetComponent(Entity entity);
         template <class Component>
         std::optional<Component> TryGetComponent(Entity entity);
-
+    
     private:
-        std::unordered_set<System> mSystems;
-        Registry mRegistry;
+        std::unordered_map<Entity, Entity> mRemoveChildren{};
+        std::vector<Entity> mKillQueue{};
+        Registry mRegistry{};
     };
     template <class Component, class... Args>
     Component& ECS::AddComponent(Entity entity, Args&&... args)
@@ -56,7 +62,7 @@ namespace FS
         return GetRegistry().any_of<Component...>(entity);
     }
     template <class... Component>
-    std::tuple<Component...> ECS::GetComponent(const Entity entity)
+    decltype(auto) ECS::GetComponent(Entity entity)
     {
         return GetRegistry().get<Component...>(entity);
     }

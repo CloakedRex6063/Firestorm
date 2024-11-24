@@ -13,17 +13,6 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -finline-functions")
 endif ()
 
-if (ENABLE_TIDY)
-    add_custom_target(
-            clang-format
-            COMMAND ${CLANG_FORMAT_BIN}
-            -i
-            ${SOURCE_FILES}
-            COMMENT "Running clang-format on source files"
-    )
-    add_dependencies(Engine clang-format)
-endif ()
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "Building on Windows")
     add_compile_definitions(FS_PLATFORM_WINDOWS)

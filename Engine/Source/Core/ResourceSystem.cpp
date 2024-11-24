@@ -1,4 +1,4 @@
-#include "Core/Systems/ResourceSystem.h"
+#include "Core/ResourceSystem.h"
 #include "fastgltf/glm_element_traits.hpp"
 #include "fastgltf/tools.hpp"
 #include "stb_image.h"
