@@ -10,11 +10,11 @@ namespace FS
     class Engine
     {
     public:
-        void Init();
+        Engine();
         void BeginFrame() const;
         void Tick(float deltaTime);
         void EndFrame() const;
-        void Shutdown();
+        ~Engine();
 		
         [[nodiscard]] Renderer& Renderer() const { return *mRenderer;}
         [[nodiscard]] FileSystem& FileSystem() const { return *mFileSystem;}

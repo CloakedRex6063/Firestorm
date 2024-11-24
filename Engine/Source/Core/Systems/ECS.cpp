@@ -1,4 +1,4 @@
-/*#include "Core/Systems/ECS.h"
+#include "Core/Systems/ECS.h"
 
 namespace FS
 {
@@ -11,7 +11,7 @@ namespace FS
     
     Registry& ECS::GetRegistry()
     {
-        
+        return mRegistry;
     }
     
     Entity ECS::CreateEntity(const std::string& name)
@@ -31,14 +31,23 @@ namespace FS
     
     bool ECS::IsValidEntity(Entity entity)
     {
-        
+        return true;
     }
     
     std::optional<Entity> ECS::GetParent(Entity entity)
     {
-        
+        return std::nullopt;
     }
-    std::span<Entity>& ECS::GetChildren(Entity entity) {}
-    bool ECS::AddChild(Entity parent, Entity child) {}
-    bool ECS::RemoveChild(Entity parent, Entity child) {}
-}  // namespace FS*/
+    // std::span<Entity>& ECS::GetChildren(Entity entity)
+    // {
+    //     return children;
+    // }
+    bool ECS::AddChild(Entity parent, Entity child)
+    {
+        return false;
+    }
+    bool ECS::RemoveChild(Entity parent, Entity child)
+    {
+        return false;
+    }
+}  // namespace FS

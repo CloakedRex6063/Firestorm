@@ -1,10 +1,10 @@
-#include "Core/Render/Vulkan/Resources/Descriptor.h"
+#include "Core/Render/Vulkan/Resources/VulkanDescriptor.h"
 #include "Core/Render/Vulkan/Constants.hpp"
-#include "Core/Render/Vulkan/Context.h"
+#include "Core/Render/Vulkan/VulkanContext.h"
 
-namespace FS::VK
+namespace FS
 {
-    Descriptor::Descriptor(const std::shared_ptr<Context>& context) : mContext(context)
+    VulkanDescriptor::VulkanDescriptor(const std::shared_ptr<VulkanContext>& context) : mContext(context)
     {
         constexpr std::array poolSizes = {VkDescriptorPoolSize{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                                .descriptorCount = Constants::MaxSamplerDescriptors},
@@ -28,9 +28,9 @@ namespace FS::VK
         mSet = mContext->AllocateDescriptorSet(mPool, mLayout);
     }
 
-    Descriptor::~Descriptor()
+    VulkanDescriptor::~VulkanDescriptor()
     {
         vkDestroyDescriptorSetLayout(*mContext, mLayout, nullptr);
         vkDestroyDescriptorPool(*mContext, mPool, nullptr);
     };
-}  // namespace FS::VK
+}  // namespace FS

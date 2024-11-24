@@ -1,8 +1,8 @@
-#include "Core/Render/Vulkan/Tools/Utils.h"
+#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
-namespace FS::VK
+namespace FS
 {
-    VkSemaphoreSubmitInfo Utils::GetSemaphoreSubmitInfo(VkSemaphore semaphore, const VkPipelineStageFlags2 stageMask)
+    VkSemaphoreSubmitInfo VulkanUtils::GetSemaphoreSubmitInfo(VkSemaphore semaphore, const VkPipelineStageFlags2 stageMask)
     {
         const VkSemaphoreSubmitInfo submitInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                                                   .semaphore = semaphore,
@@ -11,7 +11,7 @@ namespace FS::VK
         return submitInfo;
     }
 
-    VkCommandBufferSubmitInfo Utils::GetCommandBufferSubmitInfo(VkCommandBuffer cmdBuffer)
+    VkCommandBufferSubmitInfo VulkanUtils::GetCommandBufferSubmitInfo(VkCommandBuffer cmdBuffer)
     {
         const VkCommandBufferSubmitInfo submitInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                                                       .commandBuffer = cmdBuffer,
@@ -19,19 +19,19 @@ namespace FS::VK
         return submitInfo;
     }
 
-    VkImageSubresourceRange Utils::GetSubresourceRange(const VkImageAspectFlags aspectMask)
+    VkImageSubresourceRange VulkanUtils::GetSubresourceRange(const VkImageAspectFlags aspectMask)
     {
         const VkImageSubresourceRange subresourceRange = {.aspectMask = aspectMask, .levelCount = 1, .layerCount = 1};
         return subresourceRange;
     }
 
-    VkImageSubresourceLayers Utils::GetSubresourceLayers(const VkImageAspectFlags aspectMask)
+    VkImageSubresourceLayers VulkanUtils::GetSubresourceLayers(const VkImageAspectFlags aspectMask)
     {
         const VkImageSubresourceLayers subresourceLayers = {.aspectMask = aspectMask, .layerCount = 1};
         return subresourceLayers;
     };
 
-    VkPipelineShaderStageCreateInfo Utils::CreateShaderStageInfo(const VkShaderStageFlagBits stage, VkShaderModule shaderModule)
+    VkPipelineShaderStageCreateInfo VulkanUtils::CreateShaderStageInfo(const VkShaderStageFlagBits stage, VkShaderModule shaderModule)
     {
         const VkPipelineShaderStageCreateInfo shaderStageInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                                  .stage = stage,
@@ -40,7 +40,7 @@ namespace FS::VK
         return shaderStageInfo;
     }
 
-    VkBufferCopy2 Utils::GetBufferCopy2(const uint64_t size, const uint64_t srcOffset, const uint64_t dstOffset)
+    VkBufferCopy2 VulkanUtils::GetBufferCopy2(const uint64_t size, const uint64_t srcOffset, const uint64_t dstOffset)
     {
         const VkBufferCopy2 copy2 = {.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
                                      .srcOffset = srcOffset,
@@ -49,7 +49,7 @@ namespace FS::VK
         return copy2;
     }
 
-    VkBufferImageCopy2 Utils::GetBufferImageCopy2(const uint64_t bufferOffset,
+    VkBufferImageCopy2 VulkanUtils::GetBufferImageCopy2(const uint64_t bufferOffset,
                                                   const VkOffset2D imageOffset,
                                                   const VkExtent2D extent)
     {
@@ -63,7 +63,7 @@ namespace FS::VK
         return copy2;
     }
     
-    VkImageLayout Utils::GetImageLayout(const ImageLayout layout)
+    VkImageLayout VulkanUtils::GetImageLayout(const ImageLayout layout)
     {
         switch (layout)
         {
@@ -107,7 +107,7 @@ namespace FS::VK
         return VK_IMAGE_LAYOUT_UNDEFINED;
     }
 
-    std::string_view Utils::VkResultToString(const VkResult result)
+    std::string_view VulkanUtils::VkResultToString(const VkResult result)
     {
         switch (result)
         {
@@ -136,4 +136,4 @@ namespace FS::VK
         }
     }
 
-}  // namespace FS::VK
+}  // namespace FS

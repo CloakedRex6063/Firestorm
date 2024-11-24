@@ -1,6 +1,6 @@
 #pragma once
 
-namespace FS::VK::Constants
+namespace FS::Constants
 {
     constexpr uint32_t MaxFramesInFlight = 3;
     constexpr uint16_t MaxUniformDescriptors = std::numeric_limits<uint16_t>::max();

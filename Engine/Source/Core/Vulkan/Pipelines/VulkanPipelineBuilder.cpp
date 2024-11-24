@@ -1,11 +1,11 @@
-#include "Core/Render/Vulkan/Pipelines/PipelineBuilder.h"
-#include "Core/Render/Vulkan/Context.h"
-#include "Core/Render/Vulkan/Resources/Model.h"
-#include "Core/Render/Vulkan/Tools/Utils.h"
+#include "Core/Render/Vulkan/Pipelines/VulkanPipelineBuilder.h"
+#include "Core/Render/Vulkan/VulkanContext.h"
+#include "Core/Render/Vulkan/Resources/VulkanModel.h"
+#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
-namespace FS::VK
+namespace FS
 {
-    PipelineBuilder::PipelineBuilder(const std::shared_ptr<Context>& context) : mContext(context)
+    VulkanPipelineBuilder::VulkanPipelineBuilder(const std::shared_ptr<VulkanContext>& context) : mContext(context)
     {
         mPipelineLayoutInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 
@@ -53,7 +53,7 @@ namespace FS::VK
         mDepthStencilState = {.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
     }
 
-    PipelineBuilder::~PipelineBuilder()
+    VulkanPipelineBuilder::~VulkanPipelineBuilder()
     {
         vkDestroyPipelineLayout(*mContext, mPipelineLayout, nullptr);
         vkDestroyPipeline(*mContext, mPipeline, nullptr);
@@ -61,14 +61,14 @@ namespace FS::VK
 
 #pragma region Mandatory
 
-    PipelineBuilder& PipelineBuilder::SetDescriptorLayouts(const ArrayProxy<VkDescriptorSetLayout> setLayouts)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetDescriptorLayouts(const ArrayProxy<VkDescriptorSetLayout> setLayouts)
     {
         mPipelineLayoutInfo.setLayoutCount = setLayouts.size();
         mPipelineLayoutInfo.pSetLayouts = setLayouts.data();
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::AddInputBinding(const uint32_t binding,
+    VulkanPipelineBuilder& VulkanPipelineBuilder::AddInputBinding(const uint32_t binding,
                                                       const uint32_t stride,
                                                       const VkVertexInputRate inputRate)
     {
@@ -81,7 +81,7 @@ namespace FS::VK
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::AddInputAttribute(const uint32_t binding,
+    VulkanPipelineBuilder& VulkanPipelineBuilder::AddInputAttribute(const uint32_t binding,
                                                         const uint32_t location,
                                                         const VkFormat format,
                                                         const uint32_t offset)
@@ -94,27 +94,27 @@ namespace FS::VK
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::AddVertexShader(const std::string& codePath)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::AddVertexShader(const std::string& codePath)
     {
         mShaderModules[0] = mContext->CreateShaderModule(codePath);
-        mShaderStages[0] = Utils::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, mShaderModules[0]);
+        mShaderStages[0] = VulkanUtils::CreateShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, mShaderModules[0]);
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::AddFragmentShader(const std::string& codePath)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::AddFragmentShader(const std::string& codePath)
     {
         mShaderModules[1] = mContext->CreateShaderModule(codePath);
-        mShaderStages[1] = Utils::CreateShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, mShaderModules[1]);
+        mShaderStages[1] = VulkanUtils::CreateShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, mShaderModules[1]);
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetTopology(const VkPrimitiveTopology topology)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetTopology(const VkPrimitiveTopology topology)
     {
         mInputAssembly.topology = topology;
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetViewportAndScissor(const glm::uvec2& size)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetViewportAndScissor(const glm::uvec2& size)
     {
         mViewport = {
             .width = static_cast<float>(size.x),
@@ -130,25 +130,25 @@ namespace FS::VK
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetPolygonMode(const VkPolygonMode polygonMode)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetPolygonMode(const VkPolygonMode polygonMode)
     {
         mRasterizationState.polygonMode = polygonMode;
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetCullMode(const VkCullModeFlagBits cullMode)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetCullMode(const VkCullModeFlagBits cullMode)
     {
         mRasterizationState.cullMode = cullMode;
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetFrontFace(const VkFrontFace frontFace)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetFrontFace(const VkFrontFace frontFace)
     {
         mRasterizationState.frontFace = frontFace;
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::SetPushConstants(const ArrayProxy<VkPushConstantRange> constants)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::SetPushConstants(const ArrayProxy<VkPushConstantRange> constants)
     {
         mPipelineLayoutInfo.pushConstantRangeCount = constants.size();
         mPipelineLayoutInfo.pPushConstantRanges = constants.data();
@@ -159,13 +159,13 @@ namespace FS::VK
 
 #pragma region Optional
 
-    PipelineBuilder& PipelineBuilder::EnableMSAA(const VkSampleCountFlagBits sampleCount)
+    VulkanPipelineBuilder& VulkanPipelineBuilder::EnableMSAA(const VkSampleCountFlagBits sampleCount)
     {
         mMsaaState.rasterizationSamples = sampleCount;
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::EnableBlending()
+    VulkanPipelineBuilder& VulkanPipelineBuilder::EnableBlending()
     {
         mColorBlendAttachment.blendEnable = true;
         mColorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -177,7 +177,7 @@ namespace FS::VK
         return *this;
     }
 
-    PipelineBuilder& PipelineBuilder::EnableDepthTest()
+    VulkanPipelineBuilder& VulkanPipelineBuilder::EnableDepthTest()
     {
         mDepthStencilState.depthTestEnable = true;
         mDepthStencilState.depthWriteEnable = true;
@@ -191,7 +191,7 @@ namespace FS::VK
 
 #pragma endregion
 
-    void PipelineBuilder::Build()
+    void VulkanPipelineBuilder::Build()
     {
         mPipelineLayout = mContext->CreatePipelineLayout(mPipelineLayoutInfo);
 
@@ -227,4 +227,4 @@ namespace FS::VK
         }
     }
 
-}  // namespace FS::VK
+}  // namespace FS

@@ -13,7 +13,10 @@ public:
     void Update() override
     {
     }
-    void Shutdown() override {}
+    void Shutdown() override
+    {
+        
+    }
 };
 
 std::unique_ptr<FS::App> CreateApp() { return std::make_unique<Sandbox>(); }

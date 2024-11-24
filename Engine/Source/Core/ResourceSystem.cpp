@@ -65,7 +65,7 @@ namespace FS
         ExtractGltfNodes(model, asset);
         return model;
     }
-    
+
     void ResourceSystem::ExtractGltfMeshes(Model& model, const fastgltf::Asset& asset)
     {
         for (const auto& mesh : asset.meshes)
@@ -92,7 +92,7 @@ namespace FS
                             break;
                         case fastgltf::ComponentType::UnsignedInt:
                             fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, indices.data());
-                        default:;
+                        default: ;
                     }
                 }
                 std::vector<Vertex> vertices;
@@ -153,14 +153,14 @@ namespace FS
                             break;
                     }
                 }
-                
+
                 model.mTotalVerticesSize += vertices.size() * sizeof(Vertex);
                 model.mTotalIndicesSize += indices.size() * sizeof(uint32_t);
 
                 int materialIndex = -1;
                 if (auto material = primitive.materialIndex; material.has_value())
                 {
-                    materialIndex = material.value();
+                    materialIndex = static_cast<int>(material.value());
                 }
                 model.mMeshes.emplace_back(std::move(vertices), std::move(indices), materialIndex);
             }
@@ -176,15 +176,25 @@ namespace FS
 
             auto baseColorFactor = glm::make_vec4(fastBaseColorFactor.data());
 
-            auto baseColorTextureIndex = baseColorTexture.has_value() ? baseColorTexture.value().textureIndex : -1;
-            auto metalRoughnessTextureIndex =
-                metallicRoughnessTexture.has_value() ? metallicRoughnessTexture.value().textureIndex : -1;
+            int baseColorTextureIndex = -1;
+            if (baseColorTexture.has_value())
+            {
+                const auto texIndex = baseColorTexture.value().textureIndex;
+                baseColorTextureIndex = static_cast<int>(asset.textures[texIndex].imageIndex.value());
+            }
+
+            int metallicRoughnessTextureIndex = -1;
+            if (metallicRoughnessTexture.has_value())
+            {
+                const auto texIndex = metallicRoughnessTexture.value().textureIndex;
+                metallicRoughnessTextureIndex = static_cast<int>(asset.textures[texIndex].imageIndex.value());
+            }
 
             model.mMaterials.emplace_back(baseColorFactor,
                                           metallicFactor,
                                           roughnessFactor,
                                           baseColorTextureIndex,
-                                          metalRoughnessTextureIndex);
+                                          metallicRoughnessTextureIndex);
         }
     }
 
@@ -211,23 +221,24 @@ namespace FS
 
     void ResourceSystem::ExtractGltfTextures(Model& model, const fastgltf::Asset& asset)
     {
-        for (const auto& texture : asset.textures)
+        for (const auto& [source, name] : asset.images)
         {
-            const auto& [source, name] = asset.images[texture.imageIndex.value()];
             int width = 0, height = 0, channels = 0;
             std::vector<uint8_t> pixels;
 
             std::visit(
                 fastgltf::visitor{
-                    [](auto& arg) {},
+                    [](auto& arg)
+                    {
+                    },
                     [&](const fastgltf::sources::URI& filePath)
                     {
-                        assert(filePath.fileByteOffset == 0);  // We don't support offsets with stbi.
-                        assert(filePath.uri.isLocalPath());    // We're only capable of loading
-                                                               // local files.
+                        assert(filePath.fileByteOffset == 0); // We don't support offsets with stbi.
+                        assert(filePath.uri.isLocalPath()); // We're only capable of loading
+                        // local files.
 
                         const std::string path(filePath.uri.path().begin(),
-                                               filePath.uri.path().end());  // Thanks C++.
+                                               filePath.uri.path().end()); // Thanks C++.
                         if (unsigned char* data = stbi_load(path.c_str(), &width, &height, &channels, 4))
                         {
                             pixels.resize(width * height * 4);
@@ -275,7 +286,9 @@ namespace FS
                                 // We only care about VectorWithMime here, because we
                                 // specify LoadExternalBuffers, meaning all buffers
                                 // are already loaded into a vector.
-                                [](auto& arg) {},
+                                [](auto& arg)
+                                {
+                                },
                                 [&](const fastgltf::sources::Vector& vector)
                                 {
                                     unsigned char* data = stbi_load_from_memory(
@@ -328,4 +341,4 @@ namespace FS
             model.mNodes.emplace_back(glmTransform, static_cast<int>(node.meshIndex.value()), children);
         }
     }
-}  // namespace FS
+} // namespace FS

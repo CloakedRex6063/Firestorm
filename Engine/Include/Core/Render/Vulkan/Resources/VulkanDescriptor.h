@@ -1,15 +1,15 @@
 #pragma once 
 
-namespace FS::VK
+namespace FS
 {
-    class Context;
-    class Descriptor 
+    class VulkanContext;
+    class VulkanDescriptor 
     {
     public:
-        Descriptor(const std::shared_ptr<Context>& context);
-        ~Descriptor();
-        NON_COPYABLE(Descriptor)
-        NON_MOVABLE(Descriptor)
+        VulkanDescriptor(const std::shared_ptr<VulkanContext>& context);
+        ~VulkanDescriptor();
+        NON_COPYABLE(VulkanDescriptor)
+        NON_MOVABLE(VulkanDescriptor)
         UNDERLYING(VkDescriptorSet, Set);
 
         [[nodiscard]] VkDescriptorSet GetSet() const { return mSet; }
@@ -17,7 +17,7 @@ namespace FS::VK
         [[nodiscard]] VkDescriptorPool GetPool() const { return mPool; }
 
     private:
-        std::shared_ptr<Context> mContext;
+        std::shared_ptr<VulkanContext> mContext;
 
         VkDescriptorPool mPool;
         VkDescriptorSetLayout mLayout;

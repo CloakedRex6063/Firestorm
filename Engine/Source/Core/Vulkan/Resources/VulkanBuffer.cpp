@@ -1,9 +1,9 @@
-#include "Core/Render/Vulkan/Resources/Buffer.h"
-#include "Core/Render/Vulkan/Context.h"
+#include "Core/Render/Vulkan/Resources/VulkanBuffer.h"
+#include "Core/Render/Vulkan/VulkanContext.h"
 
-namespace FS::VK
+namespace FS
 {
-    Buffer::Buffer(const std::shared_ptr<Context>& context,
+    VulkanBuffer::VulkanBuffer(const std::shared_ptr<VulkanContext>& context,
                    const BufferType type,
                    const uint32_t allocSize,
                    const VkBufferUsageFlags usageFlags)
@@ -12,8 +12,8 @@ namespace FS::VK
         std::tie(mBuffer, mAllocation, mAllocationInfo) = mContext->CreateBuffer(type, allocSize, usageFlags);
     }
 
-    Buffer::~Buffer()
+    VulkanBuffer::~VulkanBuffer()
     {
         if (mAllocation) vmaDestroyBuffer(mContext->GetAllocator(), mBuffer, mAllocation);
     }
-}  // namespace FS::VK
+}  // namespace FS

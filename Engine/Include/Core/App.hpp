@@ -22,11 +22,10 @@ extern std::unique_ptr<FS::App> CreateApp();
 // ReSharper disable once CppNonInlineFunctionDefinitionInHeaderFile
 int main()
 {
-    FS::gEngine.Init();
     const auto app = CreateApp();
     app->Init();
     FS::Log::Info("Initialized app");
-
+    
     std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
     while (FS::gEngine.Renderer().GetWindow().IsRunning())
     {
@@ -40,5 +39,4 @@ int main()
     }
     FS::Log::Info("Shutting down app");
     app->Shutdown();
-    FS::gEngine.Shutdown();
 }

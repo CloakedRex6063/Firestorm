@@ -6,19 +6,19 @@ namespace FS
     class Window;
 }
 
-namespace FS::VK
+namespace FS
 {
-    class Image;
-    class Context;
-    class Queue;
-    class Swapchain
+    class VulkanImage;
+    class VulkanContext;
+    class VulkanQueue;
+    class VulkanSwapchain
     {
     public:
-        Swapchain(const std::shared_ptr<Context>& device, const glm::uvec2& size);
-        ~Swapchain();
+        VulkanSwapchain(const std::shared_ptr<VulkanContext>& device, const glm::uvec2& size);
+        ~VulkanSwapchain();
 
-        NON_MOVABLE(Swapchain);
-        NON_COPYABLE(Swapchain);
+        NON_MOVABLE(VulkanSwapchain);
+        NON_COPYABLE(VulkanSwapchain);
         UNDERLYING(VkSwapchainKHR, Swapchain);
 
         void RecreateSwapchain(const glm::uvec2& size);
@@ -30,17 +30,17 @@ namespace FS::VK
                                        VkSemaphore signalSemaphore, VkFence fence);
 
         [[nodiscard]] uint32_t GetCurrentImageIndex() const { return mCurrentImageIndex; }
-        [[nodiscard]] Image& GetCurrentImage() const { return *mImages[mCurrentImageIndex]; }
+        [[nodiscard]] VulkanImage& GetCurrentImage() const { return *mImages[mCurrentImageIndex]; }
         [[nodiscard]] VkExtent2D GetExtent() const { return mExtent; }
 
     private:
-        std::shared_ptr<Context> mContext;
-        std::shared_ptr<Queue> mGraphicsQueue;
+        std::shared_ptr<VulkanContext> mContext;
+        std::shared_ptr<VulkanQueue> mGraphicsQueue;
 
         VkSwapchainKHR mSwapchain{};
 
-        std::array<std::unique_ptr<Image>, Constants::MaxFramesInFlight> mImages;
+        std::array<std::unique_ptr<VulkanImage>, Constants::MaxFramesInFlight> mImages;
         uint32_t mCurrentImageIndex = 0;
         VkExtent2D mExtent{};
     };
-} // namespace FS::VK
+} // namespace FS

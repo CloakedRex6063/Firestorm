@@ -1,15 +1,15 @@
-#include "Core/Render/Vulkan/Queue.h"
-#include "Core/Render/Vulkan/Tools/Utils.h"
+#include "Core/Render/Vulkan/VulkanQueue.h"
+#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
-namespace FS::VK
+namespace FS
 {
-    void Queue::SubmitQueue(VkCommandBuffer commandBuffer, VkSemaphore waitSemaphore,
+    void VulkanQueue::SubmitQueue(VkCommandBuffer commandBuffer, VkSemaphore waitSemaphore,
                             const VkPipelineStageFlags2 waitStageMask, VkSemaphore signalSemaphore,
                             const VkPipelineStageFlags2 signalStageMask, VkFence fence) const
     {
-        const auto commandSubmitInfo = Utils::GetCommandBufferSubmitInfo(commandBuffer);
-        const auto waitSubmitInfo = Utils::GetSemaphoreSubmitInfo(waitSemaphore, waitStageMask);
-        const auto signalSubmitInfo = Utils::GetSemaphoreSubmitInfo(signalSemaphore, signalStageMask);
+        const auto commandSubmitInfo = VulkanUtils::GetCommandBufferSubmitInfo(commandBuffer);
+        const auto waitSubmitInfo = VulkanUtils::GetSemaphoreSubmitInfo(waitSemaphore, waitStageMask);
+        const auto signalSubmitInfo = VulkanUtils::GetSemaphoreSubmitInfo(signalSemaphore, signalStageMask);
         const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
             .waitSemaphoreInfoCount = waitSemaphore ? 1u : 0u,
@@ -21,4 +21,4 @@ namespace FS::VK
         };
         vkQueueSubmit2(mQueue, 1, &submitInfo, fence);
     }
-} // namespace FS::VK
+} // namespace FS

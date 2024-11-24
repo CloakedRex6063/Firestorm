@@ -43,14 +43,14 @@ namespace FS
     
     struct Model
     {
-        std::vector<int> mRootNodes;
+        std::vector<uint64_t> mRootNodes;
         std::vector<Node> mNodes{};
         std::vector<Mesh> mMeshes{};
         std::vector<Material> mMaterials{};
         std::vector<Texture> mTextures{};
 
-        uint64_t mTotalIndicesSize{};
-        uint64_t mTotalVerticesSize{};
+        uint32_t mTotalIndicesSize{};
+        uint32_t mTotalVerticesSize{};
     };
     
 

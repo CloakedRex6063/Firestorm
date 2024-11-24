@@ -1,26 +1,26 @@
-#include "Core/Render/Vulkan/Command.h"
-#include "Core/Render/Vulkan/Context.h"
-#include "Core/Render/Vulkan/Tools/Utils.h"
+#include "Core/Render/Vulkan/VulkanCommand.h"
+#include "Core/Render/Vulkan/VulkanContext.h"
+#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
-namespace FS::VK
+namespace FS
 {
-    Command::~Command()
+    VulkanCommand::~VulkanCommand()
     {
         if (mDevice)
         {
             vkDestroyCommandPool(*mDevice, mCommandPool, nullptr);
         }
     }
-    void Command::Reset() const { vkResetCommandBuffer(mCommandBuffer, 0); }
+    void VulkanCommand::Reset() const { vkResetCommandBuffer(mCommandBuffer, 0); }
 
-    void Command::Begin(const VkCommandBufferUsageFlags flags) const
+    void VulkanCommand::Begin(const VkCommandBufferUsageFlags flags) const
     {
         const VkCommandBufferBeginInfo beginInfo = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = flags};
         vkBeginCommandBuffer(mCommandBuffer, &beginInfo);
     }
-    void Command::End() const { vkEndCommandBuffer(mCommandBuffer); }
+    void VulkanCommand::End() const { vkEndCommandBuffer(mCommandBuffer); }
 
-    void Command::BeginRendering(VkImageView colorImageView, VkImageView depthImageView, const VkExtent2D& extent) const
+    void VulkanCommand::BeginRendering(VkImageView colorImageView, VkImageView depthImageView, const VkExtent2D& extent) const
     {
         VkRenderingAttachmentInfo colorAttachment = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -52,7 +52,7 @@ namespace FS::VK
         SetViewportAndScissor(extent);
     }
 
-    void Command::Draw(const uint32_t vertexCount,
+    void VulkanCommand::Draw(const uint32_t vertexCount,
                        const uint32_t instanceCount,
                        const uint32_t vertexOffset,
                        const uint32_t instanceOffset) const
@@ -60,16 +60,21 @@ namespace FS::VK
         vkCmdDraw(mCommandBuffer, vertexCount, instanceCount, vertexOffset, instanceOffset);
     }
 
-    void Command::DrawIndexed(const uint32_t indexCount,
+    void VulkanCommand::DrawIndexed(const uint32_t indexCount,
                               const uint32_t instanceCount,
                               const uint32_t indexOffset,
-                              const int32_t vertexOffset,
+                              const uint32_t vertexOffset,
                               const uint32_t instanceOffset) const
     {
-        vkCmdDrawIndexed(mCommandBuffer, indexCount, instanceCount, indexOffset, vertexOffset, instanceOffset);
+        vkCmdDrawIndexed(mCommandBuffer,
+                         indexCount,
+                         instanceCount,
+                         indexOffset,
+                         static_cast<int>(vertexOffset),
+                         instanceOffset);
     }
 
-    void Command::DrawIndexedIndirect(VkBuffer buffer,
+    void VulkanCommand::DrawIndexedIndirect(VkBuffer buffer,
                                       const uint64_t offset,
                                       const uint32_t drawCount,
                                       const uint32_t stride) const
@@ -77,9 +82,9 @@ namespace FS::VK
         vkCmdDrawIndexedIndirect(mCommandBuffer, buffer, offset, drawCount, stride);
     }
 
-    void Command::EndRendering() const { vkCmdEndRendering(mCommandBuffer); }
+    void VulkanCommand::EndRendering() const { vkCmdEndRendering(mCommandBuffer); }
 
-    void Command::SetViewportAndScissor(const VkExtent2D& extent) const
+    void VulkanCommand::SetViewportAndScissor(const VkExtent2D& extent) const
     {
         const VkViewport viewport = {
             .x = 0.0f,
@@ -95,12 +100,12 @@ namespace FS::VK
         vkCmdSetScissor(mCommandBuffer, 0, 1, &scissor);
     }
 
-    void Command::BindPipeline(const VkPipelineBindPoint bindPoint, VkPipeline pipeline) const
+    void VulkanCommand::BindPipeline(const VkPipelineBindPoint bindPoint, VkPipeline pipeline) const
     {
         vkCmdBindPipeline(mCommandBuffer, bindPoint, pipeline);
     }
 
-    void Command::BindVertexBuffer(const uint32_t bindingOffset,
+    void VulkanCommand::BindVertexBuffer(const uint32_t bindingOffset,
                                    const uint32_t bindingCount,
                                    const ArrayProxy<VkBuffer> buffers,
                                    const ArrayProxy<uint64_t> offsets) const
@@ -108,19 +113,19 @@ namespace FS::VK
         vkCmdBindVertexBuffers(mCommandBuffer, bindingOffset, bindingCount, buffers.data(), offsets.data());
     }
 
-    void Command::BindIndexBuffer(VkBuffer mIndexBuffer, const uint64_t offset) const
+    void VulkanCommand::BindIndexBuffer(VkBuffer mIndexBuffer, const uint64_t offset) const
     {
         vkCmdBindIndexBuffer(mCommandBuffer, mIndexBuffer, offset, VK_INDEX_TYPE_UINT32);
     }
 
-    void Command::BindDescriptorSet(const VkPipelineBindPoint bindPoint,
+    void VulkanCommand::BindDescriptorSet(const VkPipelineBindPoint bindPoint,
                                     VkPipelineLayout pipelineLayout,
                                     VkDescriptorSet set) const
     {
         vkCmdBindDescriptorSets(mCommandBuffer, bindPoint, pipelineLayout, 0, 1, &set, 0, nullptr);
     }
 
-    void Command::SetPushConstants(const VkPipelineLayout layout,
+    void VulkanCommand::SetPushConstants(VkPipelineLayout layout,
                                    const VkShaderStageFlags stageFlags,
                                    const uint32_t size,
                                    const void* data) const
@@ -128,10 +133,10 @@ namespace FS::VK
         vkCmdPushConstants(mCommandBuffer, layout, stageFlags, 0, size, data);
     }
 
-    void Command::TransitionImageLayout(VkImage currentImage, const ImageLayout oldLayout, const ImageLayout newLayout) const
+    void VulkanCommand::TransitionImageLayout(VkImage currentImage, const ImageLayout oldLayout, const ImageLayout newLayout) const
     {
-        const auto vkOldLayout = Utils::GetImageLayout(oldLayout);
-        const auto vkNewLayout = Utils::GetImageLayout(newLayout);
+        const auto vkOldLayout = VulkanUtils::GetImageLayout(oldLayout);
+        const auto vkNewLayout = VulkanUtils::GetImageLayout(newLayout);
 
         VkImageMemoryBarrier2 imageMemoryBarrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -142,7 +147,7 @@ namespace FS::VK
             .oldLayout = vkOldLayout,
             .newLayout = vkNewLayout,
             .image = currentImage,
-            .subresourceRange = Utils::GetSubresourceRange(
+            .subresourceRange = VulkanUtils::GetSubresourceRange(
                 newLayout == ImageLayout::eDepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT),
         };
 
@@ -153,7 +158,7 @@ namespace FS::VK
         vkCmdPipelineBarrier2(mCommandBuffer, &dependencyInfo);
     }
 
-    void Command::CopyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const ArrayProxy<VkBufferCopy2>& bufferCopy) const
+    void VulkanCommand::CopyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const ArrayProxy<VkBufferCopy2>& bufferCopy) const
     {
         const VkCopyBufferInfo2 copyBufferInfo = {.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
                                                   .srcBuffer = srcBuffer,
@@ -163,7 +168,7 @@ namespace FS::VK
         vkCmdCopyBuffer2(mCommandBuffer, &copyBufferInfo);
     }
 
-    void Command::CopyBufferToImage(VkBuffer srcBuffer,
+    void VulkanCommand::CopyBufferToImage(VkBuffer srcBuffer,
                                     VkImage dstImage,
                                     const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const
     {
@@ -177,4 +182,4 @@ namespace FS::VK
         };
         vkCmdCopyBufferToImage2(mCommandBuffer, &copyImageInfo);
     };
-}  // namespace FS::VK
+}  // namespace FS

@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Render/Vulkan/Tools/Enums.hpp"
 
-namespace FS::VK
+namespace FS
 {
-    class Utils
+    class VulkanUtils
     {
     public:
         [[nodiscard]] static VkSemaphoreSubmitInfo GetSemaphoreSubmitInfo(VkSemaphore semaphore,
@@ -35,4 +35,4 @@ namespace FS::VK
             }
         }
     };
-}  // namespace FS::VK
+}  // namespace FS

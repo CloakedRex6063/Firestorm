@@ -1,16 +1,16 @@
 #pragma once
 
-namespace FS::VK
+namespace FS
 {
-    class Queue
+    class VulkanQueue
     {
     public:
-        Queue(const VkQueue& queue, const uint32_t familyIndex)
+        VulkanQueue(const VkQueue& queue, const uint32_t familyIndex)
             : mQueue(queue), mFamilyIndex(familyIndex)
         {
         }
-        NON_MOVABLE(Queue);
-        NON_COPYABLE(Queue);
+        NON_MOVABLE(VulkanQueue);
+        NON_COPYABLE(VulkanQueue);
         UNDERLYING(VkQueue, Queue)
 
         [[nodiscard]] uint32_t GetFamilyIndex() const { return mFamilyIndex; }
@@ -22,4 +22,4 @@ namespace FS::VK
         VkQueue mQueue;
         uint32_t mFamilyIndex;
     };
-} // namespace FS::VK
+} // namespace FS

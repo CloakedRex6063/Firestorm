@@ -1,20 +1,20 @@
-#include "Core/Render/Vulkan/Swapchain.h"
-#include "Core/Render/Vulkan/Context.h"
-#include "Core/Render/Vulkan/Queue.h"
-#include "Core/Render/Vulkan/Resources/Image.h"
+#include "Core/Render/Vulkan/VulkanSwapchain.h"
+#include "Core/Render/Vulkan/VulkanContext.h"
+#include "Core/Render/Vulkan/VulkanQueue.h"
+#include "Core/Render/Vulkan/Resources/VulkanImage.h"
 
-namespace FS::VK
+namespace FS
 {
-    Swapchain::Swapchain(const std::shared_ptr<Context>& device, const glm::uvec2& size)
+    VulkanSwapchain::VulkanSwapchain(const std::shared_ptr<VulkanContext>& device, const glm::uvec2& size)
         : mContext(device), mGraphicsQueue(mContext->GetSharedGraphicsQueue()) 
     {
         CreateSwapchain(size);
     }
-    Swapchain::~Swapchain() { vkDestroySwapchainKHR(*mContext, mSwapchain, nullptr); }
+    VulkanSwapchain::~VulkanSwapchain() { vkDestroySwapchainKHR(*mContext, mSwapchain, nullptr); }
 
-    void Swapchain::RecreateSwapchain(const glm::uvec2& size) { CreateSwapchain(size, mSwapchain); }
+    void VulkanSwapchain::RecreateSwapchain(const glm::uvec2& size) { CreateSwapchain(size, mSwapchain); }
 
-    void Swapchain::CreateSwapchain(const glm::uvec2& size, VkSwapchainKHR oldSwapchain)
+    void VulkanSwapchain::CreateSwapchain(const glm::uvec2& size, VkSwapchainKHR oldSwapchain)
     {
         mExtent = VkExtent2D(size.x, size.y);
         auto indices = mGraphicsQueue->GetFamilyIndex();
@@ -46,7 +46,7 @@ namespace FS::VK
         }
     }
 
-    void Swapchain::CreateImages()
+    void VulkanSwapchain::CreateImages()
     {
         std::array<VkImage, Constants::MaxFramesInFlight> images{};
         uint32_t imageCount = images.size();
@@ -54,16 +54,16 @@ namespace FS::VK
 
         for (uint32_t i = 0; i < imageCount; i++)
         {
-            mImages[i] = std::make_unique<Image>(mContext, images[i], ImageType::e2D, VK_FORMAT_B8G8R8A8_UNORM);
+            mImages[i] = std::make_unique<VulkanImage>(mContext, images[i], ImageType::e2D, VK_FORMAT_B8G8R8A8_UNORM);
         }
     }
 
-    VkResult Swapchain::AcquireNextImage(VkSemaphore semaphore)
+    VkResult VulkanSwapchain::AcquireNextImage(VkSemaphore semaphore)
     {
         return vkAcquireNextImageKHR(*mContext, mSwapchain, 1000000000, semaphore, nullptr, &mCurrentImageIndex);
     }
 
-    VkResult Swapchain::Present(VkCommandBuffer cmdBuffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore,
+    VkResult VulkanSwapchain::Present(VkCommandBuffer cmdBuffer, VkSemaphore waitSemaphore, VkSemaphore signalSemaphore,
                                 VkFence fence)
     {
         mGraphicsQueue->SubmitQueue(cmdBuffer, waitSemaphore, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -77,4 +77,4 @@ namespace FS::VK
 
         return vkQueuePresentKHR(*mGraphicsQueue, &presentInfo);
     }
-} // namespace FS::VK
+} // namespace FS

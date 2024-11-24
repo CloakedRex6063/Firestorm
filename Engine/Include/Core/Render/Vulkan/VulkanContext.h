@@ -4,40 +4,36 @@
 namespace FS
 {
     class Window;
-}
-
-namespace FS::VK
-{
-    class Descriptor;
+    class VulkanDescriptor;
     class Fence;
     class Semaphore;
-    class Queue;
-    class Command;
-    class Buffer;
-    class Context : public std::enable_shared_from_this<Context>
+    class VulkanQueue;
+    class VulkanCommand;
+    class VulkanBuffer;
+    class VulkanContext : public std::enable_shared_from_this<VulkanContext>
     {
     public:
-        Context(const Window& window);
-        ~Context();
+        VulkanContext(const Window& window);
+        ~VulkanContext();
 
-        NON_MOVABLE(Context);
-        NON_COPYABLE(Context);
+        NON_MOVABLE(VulkanContext);
+        NON_COPYABLE(VulkanContext);
         UNDERLYING(VkDevice, Device)
 
         [[nodiscard]] VkInstance GetInstance() const { return mInstance; }
         [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const { return mPhysicalDevice; }
         [[nodiscard]] VmaAllocator GetAllocator() const { return mAllocator; }
-        [[nodiscard]] Queue& GetGraphicsQueue() const { return *mGraphicsQueue; }
-        [[nodiscard]] std::shared_ptr<Queue> GetSharedGraphicsQueue() const { return mGraphicsQueue; }
-        [[nodiscard]] Queue& GetComputeQueue() const { return *mComputeQueue; }
-        [[nodiscard]] std::shared_ptr<Queue> GetSharedComputeQueue() const { return mComputeQueue; }
-        [[nodiscard]] Queue& GetTransferQueue() const { return *mTransferQueue; }
-        [[nodiscard]] std::shared_ptr<Queue> GetSharedTransferQueue() const { return mTransferQueue; }
+        [[nodiscard]] VulkanQueue& GetGraphicsQueue() const { return *mGraphicsQueue; }
+        [[nodiscard]] std::shared_ptr<VulkanQueue> GetSharedGraphicsQueue() const { return mGraphicsQueue; }
+        [[nodiscard]] VulkanQueue& GetComputeQueue() const { return *mComputeQueue; }
+        [[nodiscard]] std::shared_ptr<VulkanQueue> GetSharedComputeQueue() const { return mComputeQueue; }
+        [[nodiscard]] VulkanQueue& GetTransferQueue() const { return *mTransferQueue; }
+        [[nodiscard]] std::shared_ptr<VulkanQueue> GetSharedTransferQueue() const { return mTransferQueue; }
         [[nodiscard]] VkSurfaceKHR GetSurface() const { return mSurface; }
 
         [[nodiscard]] Semaphore CreateSemaphore(VkSemaphoreCreateFlags flags = {});
         [[nodiscard]] Fence CreateFence(VkFenceCreateFlags flags = {});
-        [[nodiscard]] Command CreateCommand(const Queue& queue, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        [[nodiscard]] VulkanCommand CreateCommand(const VulkanQueue& queue, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         [[nodiscard]] std::pair<VkImage, VmaAllocation> CreateImage(ImageType type,
                                                                     VkFormat format,
@@ -82,11 +78,11 @@ namespace FS::VK
         vkb::Device mDevice;
         VmaAllocator mAllocator{};
         
-        std::shared_ptr<Queue> mGraphicsQueue;
-        std::shared_ptr<Queue> mComputeQueue;
-        std::shared_ptr<Queue> mTransferQueue;
+        std::shared_ptr<VulkanQueue> mGraphicsQueue;
+        std::shared_ptr<VulkanQueue> mComputeQueue;
+        std::shared_ptr<VulkanQueue> mTransferQueue;
 
         VkSurfaceKHR mSurface{};
         
     };
-}  // namespace FS::VK
+}  // namespace FS

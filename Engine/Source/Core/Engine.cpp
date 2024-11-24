@@ -1,20 +1,24 @@
 #include "Core/Engine.h"
 #include "Core/Systems/FileSystem.h"
-#include "Core/Render/Renderer.h"
-#include "Core/Render/Vulkan/Renderer.h"
+#include "Core/Render/Vulkan/VulkanRenderer.h"
 #include "Core/Systems/ResourceSystem.h"
 
 namespace FS
 {
     Engine gEngine;
-
-    void Engine::Init()
+    
+    Engine::Engine()
     {
         mLog = std::make_shared<FS::Log>();
         mFileSystem = std::make_shared<FS::FileSystem>();
         mResourceSystem = std::make_shared<FS::ResourceSystem>();
-        mRenderer = std::make_shared<VK::Renderer>();
+        mRenderer = std::make_shared<VulkanRenderer>();
         Log::Info("Initialised engine");
+    }
+
+    Engine::~Engine()
+    {
+        Log::Info("Shutting down engine");
     }
 
     void Engine::BeginFrame() const { Renderer().BeginFrame(); }
@@ -26,6 +30,4 @@ namespace FS
     }
 
     void Engine::EndFrame() const { Renderer().EndFrame(); }
-
-    void Engine::Shutdown() { Log::Info("Shutting down engine"); }
 }  // namespace FS

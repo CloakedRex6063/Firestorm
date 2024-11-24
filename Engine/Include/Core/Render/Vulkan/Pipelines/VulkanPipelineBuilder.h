@@ -1,43 +1,43 @@
 #pragma once
 
-namespace FS::VK
+namespace FS
 {
-    class Context;
-    class PipelineBuilder
+    class VulkanContext;
+    class VulkanPipelineBuilder
     {
     public:
-        PipelineBuilder(const std::shared_ptr<Context>& context);
-        ~PipelineBuilder();
+        VulkanPipelineBuilder(const std::shared_ptr<VulkanContext>& context);
+        ~VulkanPipelineBuilder();
 
         UNDERLYING(VkPipeline, Pipeline)
         [[nodiscard]] VkPipelineLayout GetLayout() const { return mPipelineLayout; }
 
 #pragma region Mandatory
-        PipelineBuilder& AddVertexShader(const std::string& codePath);
-        PipelineBuilder& AddFragmentShader(const std::string& codePath);
-        PipelineBuilder& SetTopology(VkPrimitiveTopology topology);
-        PipelineBuilder& SetViewportAndScissor(const glm::uvec2& size);
-        PipelineBuilder& SetPolygonMode(VkPolygonMode polygonMode);
-        PipelineBuilder& SetCullMode(VkCullModeFlagBits cullMode);
-        PipelineBuilder& SetFrontFace(VkFrontFace frontFace);
+        VulkanPipelineBuilder& AddVertexShader(const std::string& codePath);
+        VulkanPipelineBuilder& AddFragmentShader(const std::string& codePath);
+        VulkanPipelineBuilder& SetTopology(VkPrimitiveTopology topology);
+        VulkanPipelineBuilder& SetViewportAndScissor(const glm::uvec2& size);
+        VulkanPipelineBuilder& SetPolygonMode(VkPolygonMode polygonMode);
+        VulkanPipelineBuilder& SetCullMode(VkCullModeFlagBits cullMode);
+        VulkanPipelineBuilder& SetFrontFace(VkFrontFace frontFace);
 #pragma endregion
 
 #pragma region Optional
-        PipelineBuilder& SetPushConstants(ArrayProxy<VkPushConstantRange> constants);
-        PipelineBuilder& SetDescriptorLayouts(ArrayProxy<VkDescriptorSetLayout> setLayouts);
+        VulkanPipelineBuilder& SetPushConstants(ArrayProxy<VkPushConstantRange> constants);
+        VulkanPipelineBuilder& SetDescriptorLayouts(ArrayProxy<VkDescriptorSetLayout> setLayouts);
 
-        PipelineBuilder& AddInputBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate);
-        PipelineBuilder& AddInputAttribute(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset);
+        VulkanPipelineBuilder& AddInputBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate);
+        VulkanPipelineBuilder& AddInputAttribute(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset);
         
-        PipelineBuilder& EnableMSAA(VkSampleCountFlagBits sampleCount);
-        PipelineBuilder& EnableBlending();
-        PipelineBuilder& EnableDepthTest();
+        VulkanPipelineBuilder& EnableMSAA(VkSampleCountFlagBits sampleCount);
+        VulkanPipelineBuilder& EnableBlending();
+        VulkanPipelineBuilder& EnableDepthTest();
 #pragma endregion
 
         void Build();
 
     private:
-        std::shared_ptr<Context> mContext;
+        std::shared_ptr<VulkanContext> mContext;
         
         std::array<VkPipelineShaderStageCreateInfo, 2> mShaderStages = {};
         std::array<VkShaderModule, 2> mShaderModules = {};
@@ -59,4 +59,4 @@ namespace FS::VK
         VkPipeline mPipeline = nullptr;
         VkPipelineLayout mPipelineLayout = nullptr;
     };
-}  // namespace FS::VK
+}  // namespace FS

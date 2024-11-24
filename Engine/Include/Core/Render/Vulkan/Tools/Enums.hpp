@@ -1,6 +1,6 @@
 #pragma once
 
-namespace FS::VK
+namespace FS
 {
     enum class ImageType : uint8_t
     {
@@ -46,4 +46,4 @@ namespace FS::VK
         eTransparent
     };
     
-}  // namespace FS::VK
+}  // namespace FS

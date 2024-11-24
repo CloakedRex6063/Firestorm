@@ -16,21 +16,43 @@ struct Vertex
     vec4 color;
 };
 
+struct Material
+{
+    vec4 baseColorFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    int baseTextureIndex;
+    int roughnessTextureIndex;
+};
+
 layout(buffer_reference, std430) readonly buffer VertexBuffer
 {
     Vertex vertices[];
+};
+
+layout(buffer_reference, std430) readonly buffer MaterialBuffer
+{
+    Material materials[];
 };
 
 layout(push_constant) uniform constants
 {
     mat4 renderMatrix;
     VertexBuffer vertexBuffer;
-    int textureIndex;
+    MaterialBuffer materialBuffer;
+    int materialIndex;
 } pushConstants;
 
 layout(binding = 1) uniform sampler2D Sampler2D[];
 
 void main()
 {
-    outFragColor = texture(Sampler2D[pushConstants.textureIndex], inUV);
+    Material material = pushConstants.materialBuffer.materials[pushConstants.materialIndex];
+    vec4 baseColor = material.baseColorFactor * texture(Sampler2D[material.baseTextureIndex], inUV);
+    vec4 metallicRoughness = texture(Sampler2D[material.roughnessTextureIndex], inUV);
+    float metallic = metallicRoughness.b * material.metallicFactor;
+    float roughness = metallicRoughness.g * material.roughnessFactor;
+
+    // Output the final fragment color
+    outFragColor = baseColor;
 }

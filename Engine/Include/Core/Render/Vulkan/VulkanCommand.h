@@ -1,19 +1,19 @@
 #pragma once
 #include "Tools/Enums.hpp"
 
-namespace FS::VK
+namespace FS
 {
-    class Context;
-    class Command
+    class VulkanContext;
+    class VulkanCommand
     {
     public:
-        Command(const std::shared_ptr<Context>& device, VkCommandPool cmdPool, VkCommandBuffer cmd)
+        VulkanCommand(const std::shared_ptr<VulkanContext>& device, VkCommandPool cmdPool, VkCommandBuffer cmd)
             : mDevice(device), mCommandBuffer(cmd), mCommandPool(cmdPool)
         {
         }
-        ~Command();
-        NON_COPYABLE(Command);
-        MOVABLE(Command);
+        ~VulkanCommand();
+        NON_COPYABLE(VulkanCommand);
+        MOVABLE(VulkanCommand);
         UNDERLYING(VkCommandBuffer, CommandBuffer)
 
         VkCommandPool& GetCommandPool() { return mCommandPool; }
@@ -42,7 +42,7 @@ namespace FS::VK
         void DrawIndexed(uint32_t indexCount,
                          uint32_t instanceCount = 1,
                          uint32_t indexOffset = 0,
-                         int32_t vertexOffset = 0,
+                         uint32_t vertexOffset = 0,
                          uint32_t instanceOffset = 0) const;
         void DrawIndexedIndirect(VkBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) const;
 
@@ -54,9 +54,9 @@ namespace FS::VK
                                const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const;
 
     private:
-        std::shared_ptr<Context> mDevice;
+        std::shared_ptr<VulkanContext> mDevice;
         VkCommandBuffer mCommandBuffer = nullptr;
         VkCommandPool mCommandPool = nullptr;
     };
 
-}  // namespace FS::VK
+}  // namespace FS

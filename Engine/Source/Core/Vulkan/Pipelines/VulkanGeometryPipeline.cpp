@@ -1,11 +1,11 @@
-#include "Core/Render/Vulkan/Pipelines/GeometryPipeline.h"
+#include "Core/Render/Vulkan/Pipelines/VulkanGeometryPipeline.h"
 #include "Core/Engine.h"
-#include "Core/Render/Vulkan/Resources/Model.h"
+#include "Core/Render/Vulkan/Resources/VulkanModel.h"
 #include "Core/Systems/FileSystem.h"
 
-namespace FS::VK
+namespace FS
 {
-    GeometryPipeline::GeometryPipeline(const std::shared_ptr<Context>& context,
+    VulkanGeometryPipeline::VulkanGeometryPipeline(const std::shared_ptr<VulkanContext>& context,
                                        VkDescriptorSetLayout setLayout,
                                        const glm::uvec2& size)
         : mPipelineBuilder(context)
@@ -27,4 +27,4 @@ namespace FS::VK
             .EnableDepthTest()
             .Build();
     }
-}  // namespace FS::VK
+}  // namespace FS
