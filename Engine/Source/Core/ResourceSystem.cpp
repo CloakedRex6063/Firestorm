@@ -32,6 +32,8 @@ namespace FS
                                      fastgltf::Options::LoadExternalBuffers | fastgltf::Options::LoadExternalImages |
                                      fastgltf::Options::GenerateMeshIndices;
 
+        constexpr auto extensions = fastgltf::Extensions::KHR_materials_transmission | fastgltf::Extensions::KHR_materials_volume;
+        
         Log::Info("Loading Gltf from {}", path.string());
 
         auto gltfFile = fastgltf::MappedGltfFile::FromPath(path);
@@ -40,7 +42,8 @@ namespace FS
             Log::Error("Error while loading gltf file {}, {}", path.string(), fastgltf::getErrorMessage(gltfFile.error()));
             return std::nullopt;
         }
-        auto expectedAsset = mParser.loadGltf(gltfFile.get(), path.parent_path(), gltfOptions);
+        fastgltf::Parser parser(extensions);
+        auto expectedAsset = parser.loadGltf(gltfFile.get(), path.parent_path(), gltfOptions);
         if (!expectedAsset)
         {
             // Log the error
@@ -138,7 +141,14 @@ namespace FS
                                                                           colorAccessor,
                                                                           [&](const glm::vec3& color, const size_t index)
                                                                           {
-                                                                              vertices[index].mColor = glm::vec4(color, 1);
+                                                                              if (glm::all(glm::equal(glm::vec3(), color)))
+                                                                              {
+                                                                                  vertices[index].mColor = glm::vec4(1);
+                                                                              }
+                                                                              else
+                                                                              {
+                                                                                  vertices[index].mColor = glm::vec4(color, 1);
+                                                                              }
                                                                           });
                             break;
                         case fastgltf::AccessorType::Vec4:
@@ -146,12 +156,26 @@ namespace FS
                                                                           colorAccessor,
                                                                           [&](const glm::vec4& color, const size_t index)
                                                                           {
-                                                                              vertices[index].mColor = color;
+                                                                              if (glm::all(glm::equal(glm::vec4(), color)))
+                                                                              {
+                                                                                  vertices[index].mColor = glm::vec4(1);
+                                                                              }
+                                                                              else
+                                                                              {
+                                                                                  vertices[index].mColor = color;
+                                                                              }
                                                                           });
                             break;
                         default:
                             break;
                     }
+                }
+                else
+                {
+                    std::ranges::for_each(vertices, [](Vertex& vertex)
+                    {
+                        vertex.mColor = glm::vec4(1.0f);
+                    });
                 }
 
                 model.mTotalVerticesSize += vertices.size() * sizeof(Vertex);

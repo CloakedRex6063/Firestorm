@@ -1,21 +1,30 @@
 #include "Core/Render/Vulkan/Resources/VulkanResourceLoader.h"
+
+#include "Core/ECS.h"
+#include "Core/Engine.h"
 #include "Core/Render/Vulkan/VulkanCommand.h"
 #include "Core/Render/Vulkan/VulkanContext.h"
 #include "Core/Render/Vulkan/VulkanQueue.h"
 #include "Core/Render/Vulkan/VulkanSync.h"
 #include "Core/Render/Vulkan/Resources/VulkanDescriptor.h"
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
+#include "fastgltf/types.hpp"
 
 namespace FS
 {
-    VulkanResourceLoader::VulkanResourceLoader(const std::shared_ptr<VulkanContext>& context) : mContext(context),
-        mDescriptor(mContext)
+    VulkanResourceLoader::VulkanResourceLoader(const std::shared_ptr<VulkanContext>& context)
+        : mContext(context),
+          mLightBuffer(context, BufferType::eMappedGPU, sizeof(Component::Light) * 1000),
+          mDescriptor(mContext)
     {
         mTransferCommand = std::make_unique<VulkanCommand>(mContext->CreateCommand(mContext->GetTransferQueue()));
-        VkSamplerCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-                                          .magFilter = VK_FILTER_LINEAR,
-                                          .minFilter = VK_FILTER_LINEAR};
+        constexpr VkSamplerCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                                                    .magFilter = VK_FILTER_LINEAR,
+                                                    .minFilter = VK_FILTER_LINEAR};
         vkCreateSampler(*mContext, &createInfo, nullptr, &mLinearSampler);
+
+        mLights.resize(1000);
+        mContext->UpdateDescriptorStorageBuffer(mLightBuffer, GetDescriptor(), 0);
     }
 
     VulkanResourceLoader::~VulkanResourceLoader() { vkDestroySampler(*mContext, mLinearSampler, nullptr); }
@@ -50,16 +59,17 @@ namespace FS
             uint64_t textureOffset = 0;
             for (const auto [index, texture] : std::views::enumerate(model.mTextures))
             {
-                images.emplace_back(mContext,
-                                    ImageType::e2D,
-                                    VK_FORMAT_R8G8B8A8_UNORM,
-                                    VkExtent2D(texture.mWidth, texture.mHeight),
-                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                    VK_IMAGE_USAGE_SAMPLED_BIT);
+                images.emplace_back(
+                    mContext,
+                    ImageType::e2D,
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VkExtent2D(texture.mWidth, texture.mHeight),
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
                 auto& vulkanImage = images.back();
                 const auto textureSize = texture.mWidth * texture.mHeight * 4;
                 std::memcpy(static_cast<char*>(mappedImage) + textureOffset, texture.mPixels.data(), textureSize);
-                auto imageBufferCopy = VulkanUtils::GetBufferImageCopy2(textureOffset, VkOffset2D(), VkExtent2D(texture.mWidth, texture.mHeight));
+                auto imageBufferCopy =
+                    VulkanUtils::GetBufferImageCopy2(textureOffset, VkOffset2D(), VkExtent2D(texture.mWidth, texture.mHeight));
                 mTransferCommand->TransitionImageLayout(vulkanImage, ImageLayout::eUndefined, ImageLayout::eTransferDst);
                 mTransferCommand->CopyBufferToImage(imageBuffer, vulkanImage, imageBufferCopy);
                 mTransferCommand->TransitionImageLayout(vulkanImage, ImageLayout::eTransferDst, ImageLayout::eShaderReadOnly);
@@ -72,8 +82,14 @@ namespace FS
 
             for (auto& material : model.mMaterials)
             {
-                material.mBaseTextureIndex = incrementorMap[material.mBaseTextureIndex];
-                material.mRoughnessTextureIndex = incrementorMap[material.mRoughnessTextureIndex];
+                if (material.mBaseTextureIndex != -1)
+                {
+                    material.mBaseTextureIndex = incrementorMap[material.mBaseTextureIndex];
+                }
+                if (material.mRoughnessTextureIndex != -1)
+                {
+                    material.mRoughnessTextureIndex = incrementorMap[material.mRoughnessTextureIndex];
+                }
             }
 
             uint32_t vertexOffset = 0;
@@ -138,4 +154,24 @@ namespace FS
         mContext->GetTransferQueue().SubmitQueue(*mTransferCommand, nullptr, 0, nullptr, 0, fence);
         mContext->WaitForFence(fence, std::numeric_limits<uint64_t>::max());
     }
-} // namespace FS::VK
+
+    void VulkanResourceLoader::UpdateLights()
+    {
+        size_t count = 0;
+
+        auto totalSize = gEngine.ECS().View<Component::Light>().size();
+        gEngine.ECS().View<Component::Light>().each([&](const Component::Light& light)
+        {
+            if (count < totalSize)
+            {
+                mLights[count++] = light;
+            }
+        });
+
+        const auto mapped = mContext->MapMemory(mLightBuffer.GetAllocation());
+        std::memcpy(mapped,
+                    mLights.data(),
+                    sizeof(Component::Light) * totalSize);
+        mContext->UnmapMemory(mLightBuffer.GetAllocation());
+    }
+}  // namespace FS

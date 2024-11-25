@@ -20,6 +20,5 @@ namespace FS
 
         std::unordered_map<std::string, Model> mModelsToUpload;
         std::unordered_set<ResourceHandle> mModels;
-        fastgltf::Parser mParser;
     };
 } // namespace FS

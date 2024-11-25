@@ -1,13 +1,9 @@
 #pragma once
-#include "Core/Render/Vulkan/Constants.hpp"
+#include "Core/Render/Vulkan/VulkanConstants.hpp"
 
 namespace FS
 {
     class Window;
-}
-
-namespace FS
-{
     class VulkanImage;
     class VulkanContext;
     class VulkanQueue;
@@ -39,7 +35,7 @@ namespace FS
 
         VkSwapchainKHR mSwapchain{};
 
-        std::array<std::unique_ptr<VulkanImage>, Constants::MaxFramesInFlight> mImages;
+        std::array<std::unique_ptr<VulkanImage>, VulkanConstants::MaxFramesInFlight> mImages;
         uint32_t mCurrentImageIndex = 0;
         VkExtent2D mExtent{};
     };

@@ -45,8 +45,7 @@ namespace FS
                                                   VkImageAspectFlags aspectFlags) const;
 
         [[nodiscard]] std::tuple<VkBuffer, VmaAllocation, VmaAllocationInfo> CreateBuffer(BufferType bufferType,
-                                                                                          uint32_t allocSize,
-                                                                                          VkBufferUsageFlags usageFlags) const;
+                                                                                          uint32_t allocSize) const;
         [[nodiscard]] VmaAllocationInfo GetAllocationInfo(VmaAllocation allocation) const;
 
         [[nodiscard]] void* MapMemory(VmaAllocation allocation) const;
@@ -55,6 +54,7 @@ namespace FS
         [[nodiscard]] VkDescriptorPool CreateDescriptorPool(uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const;
         [[nodiscard]] VkDescriptorSetLayout CreateDescriptorSetLayout(ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const;
         [[nodiscard]] VkDescriptorSet AllocateDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout layout) const;
+        void UpdateDescriptorStorageBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const;
         void UpdateDescriptorImage(VkSampler sampler, VkImageView view, VkDescriptorSet set, uint32_t arrayIndex) const;
 
         [[nodiscard]] VkShaderModule CreateShaderModule(const std::string& codePath) const;

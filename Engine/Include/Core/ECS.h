@@ -35,6 +35,8 @@ namespace FS
         decltype(auto) GetComponent(Entity entity);
         template <class Component>
         std::optional<Component> TryGetComponent(Entity entity);
+        template <class... Components>
+        decltype(auto) View();
     
     private:
         std::unordered_map<Entity, Entity> mRemoveChildren{};
@@ -71,5 +73,11 @@ namespace FS
     {
         auto component = GetRegistry().try_get<Component>(entity);
         return component ? std::optional<Component>(*component) : std::nullopt;
+    }
+    
+    template <class... Components>
+    decltype(auto) ECS::View()
+    {
+        return GetRegistry().view<Components...>();
     }
 }  // namespace FS

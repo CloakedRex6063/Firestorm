@@ -35,24 +35,33 @@ layout(buffer_reference, std430) readonly buffer MaterialBuffer
     Material materials[];
 };
 
-layout(push_constant) uniform constants
+layout(push_constant) uniform Constant
 {
     mat4 renderMatrix;
     VertexBuffer vertexBuffer;
     MaterialBuffer materialBuffer;
-    int materialIndex;
+    uint materialIndex;
 } pushConstants;
 
-layout(binding = 1) uniform sampler2D Sampler2D[];
+struct Light
+{
+    vec4 position;  // xyz for position, w for type (point, spot, etc.)
+    vec4 color;     // rgb for color, w for intensity
+    vec4 direction; // xyz for direction, w ignored (for now)
+};
+
+layout(binding = 1) uniform sampler2D samplers[];
+
+layout(binding = 2) readonly buffer LightBuffer
+{
+    Light lights[];
+};
 
 void main()
 {
     Material material = pushConstants.materialBuffer.materials[pushConstants.materialIndex];
-    vec4 baseColor = material.baseColorFactor * texture(Sampler2D[material.baseTextureIndex], inUV);
-    vec4 metallicRoughness = texture(Sampler2D[material.roughnessTextureIndex], inUV);
-    float metallic = metallicRoughness.b * material.metallicFactor;
-    float roughness = metallicRoughness.g * material.roughnessFactor;
-
-    // Output the final fragment color
-    outFragColor = baseColor;
+    vec4 baseColor = material.baseTextureIndex != -1
+    ? texture(samplers[material.baseTextureIndex], inUV)
+    : material.baseColorFactor;
+    outFragColor = baseColor * lights[0].color;
 }

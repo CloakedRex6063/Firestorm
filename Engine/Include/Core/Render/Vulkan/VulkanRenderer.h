@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Render/Vulkan/Constants.hpp"
+#include "Core/Render/Vulkan/VulkanConstants.hpp"
 #include "VulkanCommand.h"
 #include "VulkanSync.h"
 #include "Resources/VulkanModel.h"
@@ -27,13 +27,13 @@ namespace FS
 
         [[nodiscard]] VulkanContext& GetContext() const { return *mContext; }
         [[nodiscard]] VulkanSwapchain& GetSwapchain() const { return *mSwapchain; }
-        [[nodiscard]] VulkanResourceLoader& GetModelManager() const { return *mModelManager; }
+        [[nodiscard]] VulkanResourceLoader& GetResourceLoader() const { return *mModelManager; }
         [[nodiscard]] VulkanGeometryPipeline& GetGeometryPipeline() const { return *mGeometryPipeline; }
 
     private:
         struct FrameData;
         [[nodiscard]] FrameData& GetFrameData() const { return *mFrameData[mFrameIndex]; }
-
+        
         void RenderGeometry(const VulkanCommand& command) const;
 
         std::shared_ptr<VulkanContext> mContext;
@@ -47,7 +47,7 @@ namespace FS
             Semaphore mPresentSemaphore;
             VulkanCommand mCommand;
         };
-        std::array<std::unique_ptr<FrameData>, Constants::MaxFramesInFlight> mFrameData;
+        std::array<std::unique_ptr<FrameData>, VulkanConstants::MaxFramesInFlight> mFrameData;
         uint32_t mFrameIndex = 0;
 
         std::unique_ptr<VulkanImage> mDepthImage;

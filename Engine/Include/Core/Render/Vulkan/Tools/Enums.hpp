@@ -15,7 +15,8 @@ namespace FS
         eVertex,
         eIndex,
         eGPU,
-        eCPU
+        eMappedGPU,
+        eCPU,
     };
 
     enum class ImageLayout : uint8_t

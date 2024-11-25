@@ -28,13 +28,20 @@ namespace FS::Component
         ResourceHandle mResourceHandle;
     };
 
+    struct Light
+    {
+        glm::vec4 mPosition; // xyz for position, w for type of light
+        glm::vec4 mColor; // xyz for color, w for intensity
+        glm::vec4 mDirection;
+    };
+
     struct Camera
     {
         CameraType mType = CameraType::ePerspective;
         float mNear = 0.01f;
         float mFar = 1000.f;
         float mFov = 90.f;
-        glm::mat4 mProjectionMatrix;
-        glm::mat4 mViewMatrix;
+        glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
+        glm::mat4 mViewMatrix = glm::mat4(1.0f);
     };
 }

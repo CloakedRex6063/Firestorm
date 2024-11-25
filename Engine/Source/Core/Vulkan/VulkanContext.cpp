@@ -6,7 +6,12 @@
 #include "Core/Render/Vulkan/VulkanSync.h"
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 #include "Core/Render/Window.h"
-#include "Core/Render/Vulkan/Constants.hpp"
+#include "Core/Render/Vulkan/VulkanConstants.hpp"
+
+#include <complex.h>
+#include <complex.h>
+#include <complex.h>
+#include <complex.h>
 
 namespace FS
 {
@@ -40,7 +45,7 @@ namespace FS
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
                 Log::Error("{}, {}", callbackData->pMessage, userData);
                 break;
-            default: ;
+            default:;
                 Log::Info("{}, {}", callbackData->pMessage, userData);
                 break;
         }
@@ -77,16 +82,16 @@ namespace FS
                                                     .synchronization2 = true,
                                                     .dynamicRendering = true};
         auto physicalDeviceReturn = selector.set_minimum_version(1, 3)
-                                            .set_surface(mSurface)
-                                            .set_required_features_12(features12)
-                                            .set_required_features_13(features13)
-                                            .require_separate_transfer_queue()
-                                            .require_separate_compute_queue()
-                                            .add_required_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
-                                            .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
-                                            .add_required_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
-                                            .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
-                                            .select();
+                                        .set_surface(mSurface)
+                                        .set_required_features_12(features12)
+                                        .set_required_features_13(features13)
+                                        .require_separate_transfer_queue()
+                                        .require_separate_compute_queue()
+                                        .add_required_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
+                                        .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+                                        .add_required_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+                                        .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
+                                        .select();
         ASSERT(physicalDeviceReturn.has_value());
         mPhysicalDevice = physicalDeviceReturn.value();
     }
@@ -218,8 +223,7 @@ namespace FS
     }
 
     std::tuple<VkBuffer, VmaAllocation, VmaAllocationInfo> VulkanContext::CreateBuffer(const BufferType bufferType,
-        const uint32_t allocSize,
-        const VkBufferUsageFlags usageFlags) const
+                                                                                       const uint32_t allocSize) const
     {
         VkBufferUsageFlags mainUsageFlags = 0;
         VmaMemoryUsage memoryUsage{};
@@ -245,11 +249,18 @@ namespace FS
                 mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
                 requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                break;
+            case BufferType::eMappedGPU:
+                mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+                memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+                requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                break;
         }
 
         const VkBufferCreateInfo bufferCreateInfo = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                                      .size = allocSize,
-                                                     .usage = mainUsageFlags | usageFlags,
+                                                     .usage = mainUsageFlags,
                                                      .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
         VkBuffer buffer;
         const VmaAllocationCreateInfo createInfo{.usage = memoryUsage, .requiredFlags = requiredMemoryFlags};
@@ -320,6 +331,19 @@ namespace FS
         return descriptorSet;
     }
 
+    void VulkanContext::UpdateDescriptorStorageBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const
+    {
+        VkDescriptorBufferInfo bufferInfo{.buffer = buffer, .range = VK_WHOLE_SIZE};
+        const VkWriteDescriptorSet writeInfo = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                                .dstSet = set,
+                                                .dstBinding = VulkanConstants::StorageBinding,
+                                                .dstArrayElement = arrayIndex,
+                                                .descriptorCount = 1,
+                                                .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                                .pBufferInfo = &bufferInfo};
+        vkUpdateDescriptorSets(mDevice, 1, &writeInfo, 0, nullptr);
+    }
+
     void VulkanContext::UpdateDescriptorImage(VkSampler sampler,
                                               VkImageView view,
                                               VkDescriptorSet set,
@@ -331,7 +355,7 @@ namespace FS
         const VkWriteDescriptorSet writeInfo = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .dstSet = set,
-            .dstBinding = Constants::SamplerBinding,
+            .dstBinding = VulkanConstants::SamplerBinding,
             .dstArrayElement = arrayIndex,
             .descriptorCount = 1,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -373,4 +397,4 @@ namespace FS
     void VulkanContext::ResetFence(VkFence fence) const { vkResetFences(mDevice, 1, &fence); }
 
     void VulkanContext::WaitIdle() const { vkDeviceWaitIdle(mDevice); }
-} // namespace FS
+}  // namespace FS

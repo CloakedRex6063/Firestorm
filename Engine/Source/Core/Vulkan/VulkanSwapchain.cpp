@@ -21,7 +21,7 @@ namespace FS
         const VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = mContext->GetSurface(),
-            .minImageCount = Constants::MaxFramesInFlight,
+            .minImageCount = VulkanConstants::MaxFramesInFlight,
             .imageFormat = VK_FORMAT_B8G8R8A8_UNORM,
             .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
             .imageExtent = mExtent,
@@ -48,7 +48,7 @@ namespace FS
 
     void VulkanSwapchain::CreateImages()
     {
-        std::array<VkImage, Constants::MaxFramesInFlight> images{};
+        std::array<VkImage, VulkanConstants::MaxFramesInFlight> images{};
         uint32_t imageCount = images.size();
         vkGetSwapchainImagesKHR(*mContext, mSwapchain, &imageCount, images.data());
 

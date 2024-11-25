@@ -3,13 +3,10 @@
 
 namespace FS
 {
-    VulkanBuffer::VulkanBuffer(const std::shared_ptr<VulkanContext>& context,
-                   const BufferType type,
-                   const uint32_t allocSize,
-                   const VkBufferUsageFlags usageFlags)
+    VulkanBuffer::VulkanBuffer(const std::shared_ptr<VulkanContext>& context, const BufferType type, const uint32_t allocSize)
         : mContext(context)
     {
-        std::tie(mBuffer, mAllocation, mAllocationInfo) = mContext->CreateBuffer(type, allocSize, usageFlags);
+        std::tie(mBuffer, mAllocation, mAllocationInfo) = mContext->CreateBuffer(type, allocSize);
     }
 
     VulkanBuffer::~VulkanBuffer()

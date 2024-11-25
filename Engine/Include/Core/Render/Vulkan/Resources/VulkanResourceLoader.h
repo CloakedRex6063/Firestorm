@@ -6,24 +6,30 @@ namespace FS
 {
     class VulkanContext;
     class VulkanCommand;
-    class VulkanResourceLoader 
+    class VulkanResourceLoader
     {
     public:
         VulkanResourceLoader(const std::shared_ptr<VulkanContext>& context);
         ~VulkanResourceLoader();
-        
+
         void UploadModels(std::unordered_map<std::string, Model>& models);
         [[nodiscard]] std::span<VulkanModel> GetModels() { return mModels; }
         [[nodiscard]] VulkanDescriptor& GetDescriptor() { return mDescriptor; }
-        
+
+        void UpdateLights();
+
     private:
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanCommand> mTransferCommand;
         std::vector<VulkanModel> mModels;
+
+        std::vector<Component::Light> mLights;
+
+        VulkanBuffer mLightBuffer;
 
         VulkanDescriptor mDescriptor;
         VkSampler mLinearSampler{};
 
         uint16_t mIncrementor = 0;
     };
-}
+}  // namespace FS

@@ -29,9 +29,8 @@ namespace FS
         mContext = std::make_shared<VulkanContext>(GetWindow());
         mSwapchain = std::make_unique<VulkanSwapchain>(mContext, size);
         mModelManager = std::make_unique<VulkanResourceLoader>(mContext);
-        mGeometryPipeline = std::make_unique<VulkanGeometryPipeline>(mContext,
-                                                                     GetModelManager().GetDescriptor().GetLayout(),
-                                                                     size);
+        mGeometryPipeline =
+            std::make_unique<VulkanGeometryPipeline>(mContext, GetResourceLoader().GetDescriptor().GetLayout(), size);
 
         for (auto& frame : mFrameData)
         {
@@ -48,8 +47,8 @@ namespace FS
                                                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        const auto otherModelPath = FS::gEngine.FileSystem().GetPath(FS::Directory::eGameAssets, "Models/DamagedHelmet.glb");
-        auto otherModel = FS::gEngine.ResourceSystem().LoadModel(otherModelPath).value();
+        const auto otherModelPath = gEngine.FileSystem().GetPath(Directory::eGameAssets, "Models/DamagedHelmet.glb");
+        auto otherModel = gEngine.ResourceSystem().LoadModel(otherModelPath).value();
         auto modelsToUpload = gEngine.ResourceSystem().GetModelsToUpload();
         mModelManager->UploadModels(modelsToUpload);
     }
@@ -60,6 +59,7 @@ namespace FS
     {
         GetWindow().PollEvents();
         auto& [fence, renderSemaphore, presentSemaphore, command] = GetFrameData();
+        GetResourceLoader().UpdateLights();
         GetContext().WaitForFence(fence, 1000000000);
         GetContext().ResetFence(fence);
         VulkanUtils::HandleResult(GetSwapchain().AcquireNextImage(renderSemaphore),
@@ -88,7 +88,7 @@ namespace FS
         command.TransitionImageLayout(*mDepthImage, ImageLayout::eUndefined, ImageLayout::eDepthAttachment);
 
         command.BeginRendering(currentImage.GetView(), mDepthImage->GetView(), GetSwapchain().GetExtent());
-
+        
         RenderGeometry(command);
 
         command.EndRendering();
@@ -113,16 +113,15 @@ namespace FS
                                                                                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                                                                   VK_IMAGE_ASPECT_DEPTH_BIT);
                                   });
-        mFrameIndex = (mFrameIndex + 1) % Constants::MaxFramesInFlight;
+        mFrameIndex = (mFrameIndex + 1) % VulkanConstants::MaxFramesInFlight;
     }
 
     void VulkanRenderer::RenderGeometry(const VulkanCommand& command) const
     {
         command.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, GetGeometryPipeline());
-        
+
         const auto view = gEngine.GetSystem<CameraSystem>().GetViewMatrix();
         const auto projection = gEngine.GetSystem<CameraSystem>().GetProjectionMatrix();
-
 
         for (auto [index, model] : std::views::enumerate(mModelManager->GetModels()))
         {
@@ -130,7 +129,7 @@ namespace FS
 
             command.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       GetGeometryPipeline().GetLayout(),
-                                      GetModelManager().GetDescriptor());
+                                      GetResourceLoader().GetDescriptor());
 
             auto parentTransform = glm::mat4(1.0f);
             for (const auto& nodeIndex : model.GetRootNodeIndices())
@@ -162,4 +161,4 @@ namespace FS
             }
         }
     }
-} // namespace FS
+}  // namespace FS
