@@ -130,9 +130,9 @@ namespace FS
         vmaCreateAllocator(&allocatorInfo, &mAllocator);
     }
 
-    Semaphore VulkanContext::CreateSemaphore(const VkSemaphoreCreateFlags flags) { return {shared_from_this(), flags}; }
+    VulkanSemaphore VulkanContext::CreateSemaphore(const VkSemaphoreCreateFlags flags) { return {shared_from_this(), flags}; }
 
-    Fence VulkanContext::CreateFence(const VkFenceCreateFlags flags) { return {shared_from_this(), flags}; }
+    VulkanFence VulkanContext::CreateFence(const VkFenceCreateFlags flags) { return {shared_from_this(), flags}; }
 
     VulkanCommand VulkanContext::CreateCommand(const VulkanQueue& queue, const VkCommandBufferLevel level)
     {
@@ -250,8 +250,14 @@ namespace FS
                 memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
                 requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 break;
-            case BufferType::eMappedGPU:
+            case BufferType::eMappedStorage:
                 mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+                memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+                requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+                break;
+            case BufferType::eMappedUniform:
+                mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
                                  VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
                 requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -287,13 +293,14 @@ namespace FS
     void VulkanContext::UnmapMemory(VmaAllocation allocation) const { vmaUnmapMemory(mAllocator, allocation); }
 
     VkDescriptorPool VulkanContext::CreateDescriptorPool(const uint32_t maxSets,
-                                                         ArrayProxy<VkDescriptorPoolSize> poolSizes) const
+                                                         const ArrayProxy<VkDescriptorPoolSize> poolSizes) const
     {
-        const VkDescriptorPoolCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                                       .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
-                                                       .maxSets = maxSets,
-                                                       .poolSizeCount = poolSizes.size(),
-                                                       .pPoolSizes = poolSizes.data()};
+        const VkDescriptorPoolCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+            .maxSets = maxSets,
+            .poolSizeCount = poolSizes.size(),
+            .pPoolSizes = poolSizes.data()};
         VkDescriptorPool descriptorPool;
         vkCreateDescriptorPool(mDevice, &createInfo, nullptr, &descriptorPool);
         return descriptorPool;
@@ -331,9 +338,22 @@ namespace FS
         return descriptorSet;
     }
 
+    void VulkanContext::UpdateDescriptorUniformBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const
+    {
+        const VkDescriptorBufferInfo bufferInfo{.buffer = buffer, .range = VK_WHOLE_SIZE};
+        const VkWriteDescriptorSet writeInfo = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                                .dstSet = set,
+                                                .dstBinding = VulkanConstants::UniformBinding,
+                                                .dstArrayElement = arrayIndex,
+                                                .descriptorCount = 1,
+                                                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                .pBufferInfo = &bufferInfo};
+        vkUpdateDescriptorSets(mDevice, 1, &writeInfo, 0, nullptr);
+    }
+
     void VulkanContext::UpdateDescriptorStorageBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const
     {
-        VkDescriptorBufferInfo bufferInfo{.buffer = buffer, .range = VK_WHOLE_SIZE};
+        const VkDescriptorBufferInfo bufferInfo{.buffer = buffer, .range = VK_WHOLE_SIZE};
         const VkWriteDescriptorSet writeInfo = {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                 .dstSet = set,
                                                 .dstBinding = VulkanConstants::StorageBinding,

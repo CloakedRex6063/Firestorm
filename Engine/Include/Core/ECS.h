@@ -22,6 +22,7 @@ namespace FS
         [[nodiscard]] std::span<Entity> GetChildren(Entity entity);
         bool AddChild(Entity parent, Entity child);
         bool RemoveChild(Entity parent, Entity child);
+        
 
         template <class Component, class... Args>
         Component& AddComponent(Entity entity, Args&&... args);

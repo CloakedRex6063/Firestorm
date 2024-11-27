@@ -1,4 +1,5 @@
 #include "Core/Render/Vulkan/VulkanCommand.h"
+
 #include "Core/Render/Vulkan/VulkanContext.h"
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
@@ -20,13 +21,16 @@ namespace FS
     }
     void VulkanCommand::End() const { vkEndCommandBuffer(mCommandBuffer); }
 
-    void VulkanCommand::BeginRendering(VkImageView colorImageView, VkImageView depthImageView, const VkExtent2D& extent) const
+    void VulkanCommand::BeginRendering(const VkImageView colorImageView,
+                                       const VkImageView depthImageView,
+                                       const VkExtent2D& extent,
+                                       const bool clear) const
     {
         VkRenderingAttachmentInfo colorAttachment = {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .imageView = colorImageView,
             .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .clearValue = VkClearValue({0.0f, 0.0f, 0.0f, 1.0f}),
         };
@@ -53,18 +57,18 @@ namespace FS
     }
 
     void VulkanCommand::Draw(const uint32_t vertexCount,
-                       const uint32_t instanceCount,
-                       const uint32_t vertexOffset,
-                       const uint32_t instanceOffset) const
+                             const uint32_t instanceCount,
+                             const uint32_t vertexOffset,
+                             const uint32_t instanceOffset) const
     {
         vkCmdDraw(mCommandBuffer, vertexCount, instanceCount, vertexOffset, instanceOffset);
     }
 
     void VulkanCommand::DrawIndexed(const uint32_t indexCount,
-                              const uint32_t instanceCount,
-                              const uint32_t indexOffset,
-                              const uint32_t vertexOffset,
-                              const uint32_t instanceOffset) const
+                                    const uint32_t instanceCount,
+                                    const uint32_t indexOffset,
+                                    const uint32_t vertexOffset,
+                                    const uint32_t instanceOffset) const
     {
         vkCmdDrawIndexed(mCommandBuffer,
                          indexCount,
@@ -75,9 +79,9 @@ namespace FS
     }
 
     void VulkanCommand::DrawIndexedIndirect(VkBuffer buffer,
-                                      const uint64_t offset,
-                                      const uint32_t drawCount,
-                                      const uint32_t stride) const
+                                            const uint64_t offset,
+                                            const uint32_t drawCount,
+                                            const uint32_t stride) const
     {
         vkCmdDrawIndexedIndirect(mCommandBuffer, buffer, offset, drawCount, stride);
     }
@@ -106,9 +110,9 @@ namespace FS
     }
 
     void VulkanCommand::BindVertexBuffer(const uint32_t bindingOffset,
-                                   const uint32_t bindingCount,
-                                   const ArrayProxy<VkBuffer> buffers,
-                                   const ArrayProxy<uint64_t> offsets) const
+                                         const uint32_t bindingCount,
+                                         const ArrayProxy<VkBuffer> buffers,
+                                         const ArrayProxy<uint64_t> offsets) const
     {
         vkCmdBindVertexBuffers(mCommandBuffer, bindingOffset, bindingCount, buffers.data(), offsets.data());
     }
@@ -119,21 +123,23 @@ namespace FS
     }
 
     void VulkanCommand::BindDescriptorSet(const VkPipelineBindPoint bindPoint,
-                                    VkPipelineLayout pipelineLayout,
-                                    VkDescriptorSet set) const
+                                          VkPipelineLayout pipelineLayout,
+                                          VkDescriptorSet set) const
     {
         vkCmdBindDescriptorSets(mCommandBuffer, bindPoint, pipelineLayout, 0, 1, &set, 0, nullptr);
     }
 
     void VulkanCommand::SetPushConstants(VkPipelineLayout layout,
-                                   const VkShaderStageFlags stageFlags,
-                                   const uint32_t size,
-                                   const void* data) const
+                                         const VkShaderStageFlags stageFlags,
+                                         const uint32_t size,
+                                         const void* data) const
     {
         vkCmdPushConstants(mCommandBuffer, layout, stageFlags, 0, size, data);
     }
 
-    void VulkanCommand::TransitionImageLayout(VkImage currentImage, const ImageLayout oldLayout, const ImageLayout newLayout) const
+    void VulkanCommand::TransitionImageLayout(VkImage currentImage,
+                                              const ImageLayout oldLayout,
+                                              const ImageLayout newLayout) const
     {
         const auto vkOldLayout = VulkanUtils::GetImageLayout(oldLayout);
         const auto vkNewLayout = VulkanUtils::GetImageLayout(newLayout);
@@ -158,7 +164,9 @@ namespace FS
         vkCmdPipelineBarrier2(mCommandBuffer, &dependencyInfo);
     }
 
-    void VulkanCommand::CopyBufferToBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, const ArrayProxy<VkBufferCopy2>& bufferCopy) const
+    void VulkanCommand::CopyBufferToBuffer(VkBuffer srcBuffer,
+                                           VkBuffer dstBuffer,
+                                           const ArrayProxy<VkBufferCopy2>& bufferCopy) const
     {
         const VkCopyBufferInfo2 copyBufferInfo = {.sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
                                                   .srcBuffer = srcBuffer,
@@ -169,8 +177,8 @@ namespace FS
     }
 
     void VulkanCommand::CopyBufferToImage(VkBuffer srcBuffer,
-                                    VkImage dstImage,
-                                    const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const
+                                          VkImage dstImage,
+                                          const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const
     {
         const VkCopyBufferToImageInfo2 copyImageInfo = {
             .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,

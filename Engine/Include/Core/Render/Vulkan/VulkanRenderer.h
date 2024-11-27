@@ -42,13 +42,17 @@ namespace FS
 
         struct FrameData
         {
-            Fence mFence;
-            Semaphore mRenderSemaphore;
-            Semaphore mPresentSemaphore;
+            VulkanFence mFence;
+            VulkanSemaphore mRenderSemaphore;
+            VulkanSemaphore mPresentSemaphore;
             VulkanCommand mCommand;
         };
         std::array<std::unique_ptr<FrameData>, VulkanConstants::MaxFramesInFlight> mFrameData;
         uint32_t mFrameIndex = 0;
+
+        std::unique_ptr<VulkanBuffer> mUniformBuffer;
+        void* mappedBuffer;
+        VkDescriptorPool mImGuiDescriptorPool;
 
         std::unique_ptr<VulkanImage> mDepthImage;
         std::unique_ptr<VulkanResourceLoader> mModelManager;

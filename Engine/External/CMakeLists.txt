@@ -20,3 +20,20 @@ add_subdirectory(FastGLTF)
 
 target_link_libraries(Engine PUBLIC fastgltf::fastgltf)
 target_include_directories(Engine PUBLIC STB)
+
+add_library(imgui STATIC)
+target_sources(imgui PRIVATE
+        ImGUI/imgui.h
+        ImGUI/imgui.cpp
+        ImGUI/imgui_demo.cpp
+        ImGUI/imgui_draw.cpp
+        ImGUI/imgui_widgets.cpp
+        ImGUI/imgui_tables.cpp
+        ImGUI/backends/imgui_impl_vulkan.cpp
+        ImGUI/backends/imgui_impl_sdl2.cpp
+)
+target_include_directories(imgui PUBLIC ImGUI)
+target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL2::SDL2)
+target_link_libraries(Engine PUBLIC imgui)
+
+

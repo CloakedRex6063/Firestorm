@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Render/Resources/Model.hpp"
+#include "Render/Vulkan/Tools/Enums.hpp"
 #include "Tools/Enums.h"
 
 namespace FS::Component
@@ -27,12 +28,14 @@ namespace FS::Component
     {
         ResourceHandle mResourceHandle;
     };
-
+    
     struct Light
     {
-        glm::vec4 mPosition; // xyz for position, w for type of light
-        glm::vec4 mColor; // xyz for color, w for intensity
-        glm::vec4 mDirection;
+        glm::vec3 mPosition = glm::vec3(0.0f);
+        LightType mType = LightType::ePoint;
+        glm::vec3 mColor = glm::vec3(1.0f);
+        float mIntensity = 1.0f;
+        glm::vec3 mDirection = glm::vec3(0.0f);
     };
 
     struct Camera

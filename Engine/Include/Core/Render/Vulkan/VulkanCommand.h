@@ -22,7 +22,10 @@ namespace FS
         void Begin(VkCommandBufferUsageFlags flags) const;
         void End() const;
 
-        void BeginRendering(VkImageView colorImageView, VkImageView depthImageView, const VkExtent2D& extent) const;
+        void BeginRendering(VkImageView colorImageView,
+                            VkImageView depthImageView,
+                            const VkExtent2D& extent,
+                            bool clear = true) const;
         void EndRendering() const;
 
         void SetViewportAndScissor(const VkExtent2D& extent) const;
@@ -34,7 +37,7 @@ namespace FS
         void BindIndexBuffer(VkBuffer mIndexBuffer, uint64_t offset) const;
         void BindDescriptorSet(VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, VkDescriptorSet set) const;
         void SetPushConstants(VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t size, const void* data) const;
-        
+
         void Draw(uint32_t vertexCount,
                   uint32_t instanceCount = 1,
                   uint32_t vertexOffset = 0,

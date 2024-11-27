@@ -14,7 +14,8 @@ namespace FS
 {
     VulkanResourceLoader::VulkanResourceLoader(const std::shared_ptr<VulkanContext>& context)
         : mContext(context),
-          mLightBuffer(context, BufferType::eMappedGPU, sizeof(Component::Light) * 1000),
+          mFence(mContext),
+          mLightBuffer(context, BufferType::eMappedStorage, sizeof(Component::Light) * 1000),
           mDescriptor(mContext)
     {
         mTransferCommand = std::make_unique<VulkanCommand>(mContext->CreateCommand(mContext->GetTransferQueue()));
@@ -25,9 +26,14 @@ namespace FS
 
         mLights.resize(1000);
         mContext->UpdateDescriptorStorageBuffer(mLightBuffer, GetDescriptor(), 0);
+        mMappedLightMemory = mContext->MapMemory(mLightBuffer.GetAllocation());
     }
 
-    VulkanResourceLoader::~VulkanResourceLoader() { vkDestroySampler(*mContext, mLinearSampler, nullptr); }
+    VulkanResourceLoader::~VulkanResourceLoader()
+    {
+        mContext->UnmapMemory(mLightBuffer.GetAllocation());
+        vkDestroySampler(*mContext, mLinearSampler, nullptr);
+    }
 
     void VulkanResourceLoader::UploadModels(std::unordered_map<std::string, Model>& models)
     {
@@ -150,28 +156,24 @@ namespace FS
         }
 
         mTransferCommand->End();
-        const auto fence = mContext->CreateFence();
-        mContext->GetTransferQueue().SubmitQueue(*mTransferCommand, nullptr, 0, nullptr, 0, fence);
-        mContext->WaitForFence(fence, std::numeric_limits<uint64_t>::max());
+
+        mContext->GetTransferQueue().SubmitQueue(*mTransferCommand, nullptr, 0, nullptr, 0, mFence);
+        mContext->WaitForFence(mFence, std::numeric_limits<uint64_t>::max());
     }
 
     void VulkanResourceLoader::UpdateLights()
     {
         size_t count = 0;
 
-        auto totalSize = gEngine.ECS().View<Component::Light>().size();
-        gEngine.ECS().View<Component::Light>().each([&](const Component::Light& light)
-        {
-            if (count < totalSize)
+        const auto totalSize = gEngine.ECS().View<Component::Light>().size();
+        gEngine.ECS().View<Component::Light>().each(
+            [&](const Component::Light& light)
             {
-                mLights[count++] = light;
-            }
-        });
-
-        const auto mapped = mContext->MapMemory(mLightBuffer.GetAllocation());
-        std::memcpy(mapped,
-                    mLights.data(),
-                    sizeof(Component::Light) * totalSize);
-        mContext->UnmapMemory(mLightBuffer.GetAllocation());
+                if (count < totalSize)
+                {
+                    mLights[count++] = light;
+                }
+            });
+        std::memcpy(mMappedLightMemory, mLights.data(), sizeof(Component::Light) * totalSize);
     }
 }  // namespace FS

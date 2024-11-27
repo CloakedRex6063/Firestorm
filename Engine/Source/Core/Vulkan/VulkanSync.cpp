@@ -3,14 +3,14 @@
 
 namespace FS
 {
-    Fence::Fence(const std::shared_ptr<VulkanContext>& context, const VkFenceCreateFlags flags)
+    VulkanFence::VulkanFence(const std::shared_ptr<VulkanContext>& context, const VkFenceCreateFlags flags)
         : mContext(context)
     {
         const VkFenceCreateInfo info = {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = flags};
         vkCreateFence(*mContext, &info, nullptr, &mFence);
     }
 
-    Fence::~Fence()
+    VulkanFence::~VulkanFence()
     {
         if (mContext)
         {
@@ -18,14 +18,14 @@ namespace FS
         }
     }
 
-    Semaphore::Semaphore(const std::shared_ptr<VulkanContext>& context, const VkSemaphoreCreateFlags flags)
+    VulkanSemaphore::VulkanSemaphore(const std::shared_ptr<VulkanContext>& context, const VkSemaphoreCreateFlags flags)
         : mContext(context)
     {
         const VkSemaphoreCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .flags = flags};
         vkCreateSemaphore(*mContext, &createInfo, nullptr, &mSemaphore);
     }
 
-    Semaphore::~Semaphore()
+    VulkanSemaphore::~VulkanSemaphore()
     {
         if (mContext)
             vkDestroySemaphore(*mContext, mSemaphore, nullptr);

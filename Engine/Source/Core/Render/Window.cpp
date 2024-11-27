@@ -2,6 +2,8 @@
 #include "SDL2/SDL_vulkan.h"
 #include "Core/Render/Window.h"
 
+#include <backends/imgui_impl_sdl2.h>
+
 namespace FS
 {
     void WindowDeleter::operator()(SDL_Window* window) const
@@ -39,6 +41,7 @@ namespace FS
             {
                 mRunning = false;
             }
+            ImGui_ImplSDL2_ProcessEvent(&event);
         }
     }
 

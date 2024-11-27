@@ -23,11 +23,11 @@ namespace FS
             VkDescriptorSetLayoutBinding{.binding = VulkanConstants::UniformBinding,
                                          .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                          .descriptorCount = VulkanConstants::MaxUniformDescriptors,
-                                         .stageFlags = VK_SHADER_STAGE_ALL},
+                                         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT},
             VkDescriptorSetLayoutBinding{.binding = VulkanConstants::StorageBinding,
                                          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                          .descriptorCount = VulkanConstants::MaxStorageDescriptors,
-                                         .stageFlags = VK_SHADER_STAGE_ALL}};
+                                         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT}};
 
         mLayout = mContext->CreateDescriptorSetLayout(bindings);
 

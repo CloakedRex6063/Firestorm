@@ -4,6 +4,8 @@
 
 layout (location = 0) in vec4 inColor;
 layout (location = 1) in vec2 inUV;
+layout (location = 2) in vec3 inNormal;
+layout (location = 3) in vec3 inPos;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -41,13 +43,16 @@ layout(push_constant) uniform Constant
     VertexBuffer vertexBuffer;
     MaterialBuffer materialBuffer;
     uint materialIndex;
-} pushConstants;
+    uint lightCount;
+} pushConstant;
 
 struct Light
 {
-    vec4 position;  // xyz for position, w for type (point, spot, etc.)
-    vec4 color;     // rgb for color, w for intensity
-    vec4 direction; // xyz for direction, w ignored (for now)
+    vec3 position; 
+    int type;
+    vec3 color;
+    float intensity;
+    vec3 direction; 
 };
 
 layout(binding = 1) uniform sampler2D samplers[];
@@ -59,9 +64,32 @@ layout(binding = 2) readonly buffer LightBuffer
 
 void main()
 {
-    Material material = pushConstants.materialBuffer.materials[pushConstants.materialIndex];
+    vec3 totalLightColor = vec3(0);
+    for (int i = 0; i < pushConstant.lightCount; i++) 
+    {
+        Light light = lights[i];
+
+        vec3 lightDir;
+        float attenuation = 1.0f;
+        switch(light.type)
+        {
+            case 0:
+                lightDir = normalize(light.position - inPos);
+                float distance    = length(light.position - inPos);
+                attenuation = light.intensity / (distance * distance);
+                break;
+            case 1:
+                lightDir = normalize(-light.direction);
+                
+                break;
+        }
+        float diff = max(dot(inNormal, lightDir), 0.0);
+        vec3 diffuse = diff * light.color * attenuation;
+        totalLightColor += diffuse;
+    }
+    Material material = pushConstant.materialBuffer.materials[pushConstant.materialIndex];
     vec4 baseColor = material.baseTextureIndex != -1
     ? texture(samplers[material.baseTextureIndex], inUV)
     : material.baseColorFactor;
-    outFragColor = baseColor * lights[0].color;
+    outFragColor = baseColor * inColor * vec4(totalLightColor, 1);
 }

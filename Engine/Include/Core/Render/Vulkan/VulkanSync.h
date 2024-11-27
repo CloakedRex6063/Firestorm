@@ -3,13 +3,13 @@
 namespace FS
 {
     class VulkanContext;
-    class Fence
+    class VulkanFence
     {
     public:
-        Fence(const std::shared_ptr<VulkanContext>& context, VkFenceCreateFlags flags = {});
-        ~Fence();
-        MOVABLE(Fence);
-        NON_COPYABLE(Fence);
+        VulkanFence(const std::shared_ptr<VulkanContext>& context, VkFenceCreateFlags flags = {});
+        ~VulkanFence();
+        MOVABLE(VulkanFence);
+        NON_COPYABLE(VulkanFence);
         UNDERLYING(VkFence, Fence);
 
     private:
@@ -17,13 +17,13 @@ namespace FS
         VkFence mFence{};
     };
 
-    class Semaphore
+    class VulkanSemaphore
     {
     public:
-        Semaphore(const std::shared_ptr<VulkanContext>& context, VkSemaphoreCreateFlags flags = {});
-        ~Semaphore();
-        MOVABLE(Semaphore);
-        NON_COPYABLE(Semaphore);
+        VulkanSemaphore(const std::shared_ptr<VulkanContext>& context, VkSemaphoreCreateFlags flags = {});
+        ~VulkanSemaphore();
+        MOVABLE(VulkanSemaphore);
+        NON_COPYABLE(VulkanSemaphore);
         UNDERLYING(VkSemaphore, Semaphore);
 
     private:

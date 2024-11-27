@@ -5,8 +5,8 @@ namespace FS
 {
     class Window;
     class VulkanDescriptor;
-    class Fence;
-    class Semaphore;
+    class VulkanFence;
+    class VulkanSemaphore;
     class VulkanQueue;
     class VulkanCommand;
     class VulkanBuffer;
@@ -31,8 +31,8 @@ namespace FS
         [[nodiscard]] std::shared_ptr<VulkanQueue> GetSharedTransferQueue() const { return mTransferQueue; }
         [[nodiscard]] VkSurfaceKHR GetSurface() const { return mSurface; }
 
-        [[nodiscard]] Semaphore CreateSemaphore(VkSemaphoreCreateFlags flags = {});
-        [[nodiscard]] Fence CreateFence(VkFenceCreateFlags flags = {});
+        [[nodiscard]] VulkanSemaphore CreateSemaphore(VkSemaphoreCreateFlags flags = {});
+        [[nodiscard]] VulkanFence CreateFence(VkFenceCreateFlags flags = {});
         [[nodiscard]] VulkanCommand CreateCommand(const VulkanQueue& queue, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         [[nodiscard]] std::pair<VkImage, VmaAllocation> CreateImage(ImageType type,
@@ -54,6 +54,7 @@ namespace FS
         [[nodiscard]] VkDescriptorPool CreateDescriptorPool(uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const;
         [[nodiscard]] VkDescriptorSetLayout CreateDescriptorSetLayout(ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const;
         [[nodiscard]] VkDescriptorSet AllocateDescriptorSet(VkDescriptorPool pool, VkDescriptorSetLayout layout) const;
+        void UpdateDescriptorUniformBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const;
         void UpdateDescriptorStorageBuffer(VkBuffer buffer, VkDescriptorSet set, uint32_t arrayIndex) const;
         void UpdateDescriptorImage(VkSampler sampler, VkImageView view, VkDescriptorSet set, uint32_t arrayIndex) const;
 

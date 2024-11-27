@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanDescriptor.h"
+#include "Core/Render/Vulkan/VulkanSync.h"
 #include "Core/Render/Vulkan/Resources/VulkanModel.h"
 
 namespace FS
@@ -21,11 +22,13 @@ namespace FS
     private:
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanCommand> mTransferCommand;
+        VulkanFence mFence;
         std::vector<VulkanModel> mModels;
 
         std::vector<Component::Light> mLights;
 
         VulkanBuffer mLightBuffer;
+        void* mMappedLightMemory;
 
         VulkanDescriptor mDescriptor;
         VkSampler mLinearSampler{};

@@ -14,6 +14,7 @@ namespace FS
     public:
         Window();
 
+        [[nodiscard]] SDL_Window& GetSDLWindow() const {return *mWindow;}
         [[nodiscard]] bool IsRunning() const;
         [[nodiscard]] VkSurfaceKHR CreateSurface(const VkInstance& instance) const;
         [[nodiscard]] glm::uvec2 GetSize() const;

@@ -12,12 +12,16 @@ public:
     {
         const auto cameraEntity = FS::gEngine.ECS().CreateEntity("Camera");
         FS::gEngine.ECS().AddComponent<FS::Component::Camera>(cameraEntity);
-        FS::gEngine.ECS().AddComponent<FS::Component::Light>(cameraEntity).mColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        auto& light = FS::gEngine.ECS().AddComponent<FS::Component::Light>(cameraEntity);
+        light.mColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        light.mPosition = glm::vec3(0, 1, 1);
+        light.mDirection = glm::vec3(0, 0, -1);
+        light.mType = FS::LightType::ePoint;
+        
         FS::gEngine.GetSystem<FS::CameraSystem>().SetCurrentCamera(cameraEntity);
         auto& transform = FS::gEngine.ECS().GetComponent<FS::Component::Transform>(cameraEntity);
         transform.mWorldMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0,0,3.f));
         // transform.mWorldMatrix = glm::rotate(transform.mWorldMatrix, glm::radians(-90.f), glm::vec3(1, 0, 0));
-        
     }
     void Update() override
     {

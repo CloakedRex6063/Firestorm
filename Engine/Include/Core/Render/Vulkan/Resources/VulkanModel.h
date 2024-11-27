@@ -14,10 +14,11 @@ namespace FS
 
     struct ModelPushConstant
     {
-        glm::mat4 mMVP;
+        glm::mat4 mModel;
         VkDeviceAddress mVertexAddress;
         VkDeviceAddress mMaterialAddress;
         int mMaterialBaseIndex;
+        uint32_t mLightCount;
     };
 
     class VulkanModel
