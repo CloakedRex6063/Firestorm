@@ -11,10 +11,10 @@ namespace FS
         eNone
     };
     
-    class FileSystem
+    class FileIO
     {
     public:
-        FileSystem();
+        FileIO();
         std::vector<char> ReadTextFile(Directory directory, const std::string& path);
         std::vector<char> ReadBinaryFile(Directory directory, const std::string& path);
         std::string GetPath(Directory directory, const std::string& path);

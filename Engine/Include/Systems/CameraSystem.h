@@ -6,11 +6,14 @@ namespace FS
     class CameraSystem final : public System
     {
     public:
-        void Update(float deltaTime) override;
         void SetCurrentCamera(const Entity entity) { mCurrentCamera = entity; }
+        void Update(float deltaTime) override;
         
-        glm::mat4 GetViewMatrix() const;
-        glm::mat4 GetProjectionMatrix() const;
+        glm::vec3 GetPosition() const;
+        void Move(glm::vec3 direction);
+        
+        [[nodiscard]] glm::mat4 GetViewMatrix() const;
+        [[nodiscard]] glm::mat4 GetProjectionMatrix() const;
 
     private:
         Entity mCurrentCamera = NullEntity;

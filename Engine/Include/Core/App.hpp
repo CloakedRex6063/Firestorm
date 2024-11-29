@@ -1,7 +1,6 @@
 #pragma once
-#include "Engine.h"
-#include "Render/Renderer.h"
-#include "Render/Window.h"
+#include "Core/Engine.h"
+#include "Core/Context.h"
 
 // Include this file only once in your application.
 
@@ -12,7 +11,7 @@ namespace FS
     public:
         virtual ~App() = default;
         virtual void Init() = 0;
-        virtual void Update() = 0;
+        virtual void Update(float deltaTime) = 0;
         virtual void Shutdown() = 0;
     };
 } // namespace FS
@@ -27,13 +26,13 @@ int main()
     FS::Log::Info("Initialized app");
     
     std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
-    while (FS::gEngine.Renderer().GetWindow().IsRunning())
+    while (FS::gEngine.Context().IsRunning())
     {
         auto currentTime = std::chrono::high_resolution_clock::now();
         std::chrono::duration<float> deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         FS::gEngine.BeginFrame();
-        app->Update();
+        app->Update(deltaTime.count());
         FS::gEngine.Tick(deltaTime.count());
         FS::gEngine.EndFrame();
     }

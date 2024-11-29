@@ -1,39 +1,35 @@
 #include "Core/Render/Vulkan/VulkanRenderer.h"
+#include "imgui.h"
+#include "Core/ECS.h"
 #include "Core/Engine.h"
+#include "Core/Context.h"
 #include "Core/Render/Resources/Model.hpp"
 #include "Core/Render/Vulkan/VulkanContext.h"
+#include "Core/Render/Vulkan/VulkanQueue.h"
 #include "Core/Render/Vulkan/VulkanSwapchain.h"
 #include "Core/Render/Vulkan/Pipelines/VulkanGeometryPipeline.h"
 #include "Core/Render/Vulkan/Resources/VulkanBuffer.h"
 #include "Core/Render/Vulkan/Resources/VulkanDescriptor.h"
 #include "Core/Render/Vulkan/Resources/VulkanImage.h"
-#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
-#include "Core/FileSystem.h"
-#include "Core/ResourceSystem.h"
 #include "Core/Render/Vulkan/Resources/VulkanModel.h"
 #include "Core/Render/Vulkan/Resources/VulkanResourceLoader.h"
+#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 #include "Systems/CameraSystem.h"
-#include "imgui.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_vulkan.h"
-#include "Core/ECS.h"
 
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "Core/Render/Vulkan/VulkanQueue.h"
 
 namespace FS
 {
     VulkanRenderer::VulkanRenderer()
     {
-        auto size = GetWindow().GetSize();
+        auto size = gEngine.Context().GetWindowSize();
 
-        mContext = std::make_shared<VulkanContext>(GetWindow());
+        mContext = std::make_shared<VulkanContext>();
         mSwapchain = std::make_unique<VulkanSwapchain>(mContext, size);
-        mModelManager = std::make_unique<VulkanResourceLoader>(mContext);
+        mResourceLoader = std::make_unique<VulkanResourceLoader>(mContext);
         mGeometryPipeline =
             std::make_unique<VulkanGeometryPipeline>(mContext, GetResourceLoader().GetDescriptor().GetLayout(), size);
 
@@ -53,24 +49,24 @@ namespace FS
                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
         mUniformBuffer =
-            std::make_unique<VulkanBuffer>(mContext, BufferType::eMappedUniform, static_cast<uint32_t>(2 * sizeof(glm::mat4)));
+            std::make_unique<VulkanBuffer>(mContext, BufferType::eMappedUniform, static_cast<uint32_t>(sizeof(mUBO)));
         mappedBuffer = mContext->MapMemory(mUniformBuffer->GetAllocation());
-        mContext->UpdateDescriptorUniformBuffer(*mUniformBuffer, GetResourceLoader().GetDescriptor(), 0);
+        mContext->UpdateDescriptorUniformBuffer(*mUniformBuffer, GetResourceLoader().GetDescriptor().GetSet(), 0);
 
         ImGui::CreateContext();
-        ImGui_ImplSDL2_InitForVulkan(&GetWindow().GetSDLWindow());
+        ImGui_ImplSDL2_InitForVulkan(&static_cast<SDL_Window&>(gEngine.Context()));
 
-        std::array poolSizes = {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+        constexpr std::array poolSizes = {VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+                                          VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
         mImGuiDescriptorPool = mContext->CreateDescriptorPool(1000, poolSizes);
 
@@ -91,11 +87,6 @@ namespace FS
                                                 }};
         ImGui_ImplVulkan_Init(&imGuiInitInfo);
         ImGui_ImplVulkan_CreateFontsTexture();
-
-        const auto otherModelPath = gEngine.FileSystem().GetPath(Directory::eGameAssets, "Models/DamagedHelmet.glb");
-        auto otherModel = gEngine.ResourceSystem().LoadModel(otherModelPath).value();
-        auto modelsToUpload = gEngine.ResourceSystem().GetModelsToUpload();
-        mModelManager->UploadModels(modelsToUpload);
     }
 
     VulkanRenderer::~VulkanRenderer()
@@ -103,16 +94,18 @@ namespace FS
         GetContext().WaitIdle();
         mContext->UnmapMemory(mUniformBuffer->GetAllocation());
         ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplSDL2_Shutdown();
         vkDestroyDescriptorPool(GetContext(), mImGuiDescriptorPool, nullptr);
     }
 
     void VulkanRenderer::BeginFrame()
     {
-        GetWindow().PollEvents();
+        gEngine.Context().PollEvents();
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        
+
+        GetResourceLoader().UploadModels();
         auto& [fence, renderSemaphore, presentSemaphore, command] = GetFrameData();
         GetResourceLoader().UpdateLights();
         GetContext().WaitForFence(fence, 1000000000);
@@ -121,7 +114,7 @@ namespace FS
                                   [&](VkResult)
                                   {
                                       GetContext().WaitIdle();
-                                      GetSwapchain().RecreateSwapchain(GetWindow().GetSize());
+                                      GetSwapchain().RecreateSwapchain(gEngine.Context().GetWindowSize());
                                       mDepthImage = std::make_unique<VulkanImage>(mContext,
                                                                                   ImageType::e2D,
                                                                                   VK_FORMAT_D32_SFLOAT,
@@ -135,7 +128,7 @@ namespace FS
     {
         auto& [fence, renderSemaphore, presentSemaphore, command] = GetFrameData();
         auto& currentImage = GetSwapchain().GetCurrentImage();
-        
+
         command.Reset();
         command.Begin(0);
 
@@ -154,7 +147,7 @@ namespace FS
         command.BeginRendering(currentImage.GetView(), nullptr, GetSwapchain().GetExtent(), false);
 
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
-        
+
         command.EndRendering();
 
         command.TransitionImageLayout(currentImage, ImageLayout::eColorAttachment, ImageLayout::ePresent);
@@ -169,7 +162,7 @@ namespace FS
                                   [&](VkResult)
                                   {
                                       GetContext().WaitIdle();
-                                      GetSwapchain().RecreateSwapchain(GetWindow().GetSize());
+                                      GetSwapchain().RecreateSwapchain(gEngine.Context().GetWindowSize());
                                       mDepthImage = std::make_unique<VulkanImage>(mContext,
                                                                                   ImageType::e2D,
                                                                                   VK_FORMAT_D32_SFLOAT,
@@ -181,34 +174,34 @@ namespace FS
         ImGui::EndFrame();
     }
 
-    void VulkanRenderer::RenderGeometry(const VulkanCommand& command) const
+    void VulkanRenderer::RenderGeometry(const VulkanCommand& command)
     {
         command.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, GetGeometryPipeline());
 
-        const struct UBO
-        {
-            glm::mat4 view = gEngine.GetSystem<CameraSystem>().GetViewMatrix();
-            glm::mat4 projection = gEngine.GetSystem<CameraSystem>().GetProjectionMatrix();
-        } ubo;
-        memcpy(mappedBuffer, &ubo, sizeof(UBO));
+        auto& camera = gEngine.GetSystem<CameraSystem>();
+        mUBO.mCamPos = camera.GetPosition();
+        mUBO.mLightCount = static_cast<uint32_t>(gEngine.ECS().View<Component::Light>().size());
+        mUBO.mProjection = camera.GetProjectionMatrix();
+        mUBO.mView = camera.GetViewMatrix();
+        memcpy(mappedBuffer, &mUBO, sizeof(UBO));
 
-        ModelPushConstant pushConstant{.mLightCount = static_cast<uint32_t>(gEngine.ECS().View<Component::Light>().size())};
-        for (auto [index, model] : std::views::enumerate(mModelManager->GetModels()))
+        ModelPushConstant pushConstant{};
+        for (auto [index, model] : std::views::enumerate(GetResourceLoader().GetModels()))
         {
-            command.BindIndexBuffer(model.GetIndexBuffer(), 0);
+            command.BindIndexBuffer(model.mIndexBuffer, 0);
 
             command.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       GetGeometryPipeline().GetLayout(),
                                       GetResourceLoader().GetDescriptor());
 
             auto parentTransform = glm::mat4(1.0f);
-            for (const auto& nodeIndex : model.GetRootNodeIndices())
+            for (const auto& nodeIndex : model.mRootNodes)
             {
-                auto& [mTransform, mMeshIndex, mChildren] = model.GetNodes()[nodeIndex];
-                const auto& [mVertexOffset, mIndexOffset, mIndexCount, mMaterialIndex] = model.GetMeshes()[mMeshIndex];
-                pushConstant.mModel = parentTransform * mTransform,
-                pushConstant.mVertexAddress = model.GetVertexBufferAddress(),
-                pushConstant.mMaterialAddress = model.GetMaterialBufferAddress(),
+                auto& [mTransform, mMeshIndex, mLightIndex, mChildren] = model.mNodes[nodeIndex];
+                const auto& [mVertexOffset, mIndexOffset, mIndexCount, mMaterialIndex] = model.mMeshes[mMeshIndex];
+                pushConstant.mModel = parentTransform * mTransform, pushConstant.mVertexAddress = model.mVertexBufferAddress,
+                pushConstant.mMaterialAddress = model.mMaterialBufferAddress,
+                pushConstant.mTextureAddress = model.mTextureBufferAddress;
                 pushConstant.mMaterialBaseIndex = mMaterialIndex;
                 command.SetPushConstants(GetGeometryPipeline().GetLayout(),
                                          VK_SHADER_STAGE_ALL,
@@ -217,10 +210,9 @@ namespace FS
                 command.DrawIndexed(mIndexCount, 1, mIndexOffset, mVertexOffset);
                 for (const auto& childNodeIndex : mChildren)
                 {
-                    auto& childNode = model.GetNodes()[childNodeIndex];
-                    const auto& [vertexOffset, indexOffset, indexCount, materialIndex] =
-                        model.GetMeshes()[childNode.mMeshIndex];
-                    pushConstant.mModel = (parentTransform * mTransform * childNode.mTransform);
+                    auto& childNode = model.mNodes[childNodeIndex];
+                    const auto& [vertexOffset, indexOffset, indexCount, materialIndex] = model.mMeshes[childNode.mMeshIndex];
+                    pushConstant.mModel = parentTransform * mTransform * childNode.mTransform;
                     pushConstant.mMaterialBaseIndex = materialIndex;
                     command.SetPushConstants(GetGeometryPipeline().GetLayout(),
                                              VK_SHADER_STAGE_ALL,

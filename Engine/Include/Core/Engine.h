@@ -1,14 +1,17 @@
 #pragma once
 #include "typeindex"
+#include "Render/Vulkan/VulkanContext.h"
 
 namespace FS
 {
     class System;
     class ECS;
     class Renderer;
-    class FileSystem;
-    class ResourceSystem;
+    class Input;
+    class FileIO;
+    class ResourceManager;
     class Log;
+    class Context;
 	
     class Engine
     {
@@ -21,8 +24,10 @@ namespace FS
 
         [[nodiscard]] ECS& ECS() const { return *mECS; }
         [[nodiscard]] Renderer& Renderer() const { return *mRenderer;}
-        [[nodiscard]] FileSystem& FileSystem() const { return *mFileSystem;}
-        [[nodiscard]] ResourceSystem& ResourceSystem() const { return *mResourceSystem; }
+        [[nodiscard]] Context& Context() const { return *mContext; }
+        [[nodiscard]] Input& Input() const { return *mInput;}
+        [[nodiscard]] FileIO& FileIO() const { return *mFileIO;}
+        [[nodiscard]] ResourceManager& ResourceManager() const { return *mResourceManager; }
         [[nodiscard]] Log& Log() const { return *mLog; }
 
         [[nodiscard]] float GetDeltaTime() const { return mDeltaTime; }
@@ -43,9 +48,11 @@ namespace FS
 		
     private:
         std::shared_ptr<FS::ECS> mECS;
+        std::shared_ptr<FS::Context> mContext;
         std::shared_ptr<FS::Renderer> mRenderer;
-        std::shared_ptr<FS::FileSystem> mFileSystem;
-        std::shared_ptr<FS::ResourceSystem> mResourceSystem;
+        std::shared_ptr<FS::FileIO> mFileIO;
+        std::shared_ptr<FS::Input> mInput;
+        std::shared_ptr<FS::ResourceManager> mResourceManager;
         std::shared_ptr<FS::Log> mLog;
 
         std::unordered_map<std::type_index, std::unique_ptr<System>> mSystems{};

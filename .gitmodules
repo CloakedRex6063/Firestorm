@@ -13,3 +13,6 @@
 [submodule "Engine/External/ImGUI"]
 	path = Engine/External/ImGUI
 	url = https://github.com/ocornut/imgui
+[submodule "Engine/External/Cereal"]
+	path = Engine/External/Cereal
+	url = https://github.com/USCiLab/cereal

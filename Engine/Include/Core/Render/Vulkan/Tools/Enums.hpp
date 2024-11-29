@@ -47,12 +47,4 @@ namespace FS
         eOpaque,
         eTransparent
     };
-
-    enum class LightType : uint8_t
-    {
-        ePoint,
-        eDirectional,
-        eSpot
-    };
-    
 }  // namespace FS

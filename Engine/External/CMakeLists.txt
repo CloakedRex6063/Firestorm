@@ -15,11 +15,17 @@ target_link_libraries(Engine PUBLIC simdjson::simdjson)
 add_subdirectory(ENTT)
 target_link_libraries(Engine PUBLIC EnTT::EnTT)
 
+target_include_directories(Engine PUBLIC STB)
+
 set(FASTGLTF_COMPILE_AS_CPP20 ON CACHE BOOL "Have the library compile as C++20")
 add_subdirectory(FastGLTF)
-
 target_link_libraries(Engine PUBLIC fastgltf::fastgltf)
-target_include_directories(Engine PUBLIC STB)
+
+set(BUILD_DOC OFF CACHE BOOL "Build documentation")
+set(SKIP_PERFORMANCE_COMPARISON ON CACHE BOOL "Skip building performance sandbox comparison (requires boost)")
+set(BUILD_SANDBOX OFF CACHE BOOL "Build sandbox for cereal")
+add_subdirectory(Cereal)
+target_link_libraries(Engine PUBLIC cereal::cereal)
 
 add_library(imgui STATIC)
 target_sources(imgui PRIVATE

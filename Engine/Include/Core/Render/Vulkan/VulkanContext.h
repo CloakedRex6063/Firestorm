@@ -13,7 +13,7 @@ namespace FS
     class VulkanContext : public std::enable_shared_from_this<VulkanContext>
     {
     public:
-        VulkanContext(const Window& window);
+        VulkanContext();
         ~VulkanContext();
 
         NON_MOVABLE(VulkanContext);
@@ -69,7 +69,7 @@ namespace FS
 
     private:
         void CreateInstance();
-        void ChoosePhysicalDevice(const Window& window);
+        void ChoosePhysicalDevice();
         void CreateDevice();
         void CreateQueues();
         void CreateAllocator();

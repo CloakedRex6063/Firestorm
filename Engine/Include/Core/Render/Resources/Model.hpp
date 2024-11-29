@@ -1,4 +1,5 @@
 #pragma once
+#include "Tools/Enums.h"
 
 namespace FS
 {
@@ -9,13 +10,26 @@ namespace FS
         glm::vec3 mNormal{};
         float mUVy{};
         glm::vec4 mColor{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mPosition, mUVx, mNormal, mUVy, mColor);
+        }
     };
 
     struct Node
     {
         glm::mat4 mTransform{};
         int mMeshIndex{};
-        std::vector<size_t> mChildren{};
+        int mLightIndex{};
+        std::vector<uint32_t> mChildren{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mTransform, mMeshIndex, mLightIndex, mChildren);
+        }
     };
 
     struct Material
@@ -25,34 +39,115 @@ namespace FS
         float mRoughnessFactor{};
         int mBaseTextureIndex{};
         int mRoughnessTextureIndex{};
+        int mOcclusionTextureIndex{};
+        float mAO{};
+        int mEmissiveTextureIndex{};
+        glm::vec3 mEmissiveFactor{};
+        AlphaMode mAlphaMode{};
+        bool mDoubleSided{};
+        float mAlphaCutoff{};
+        float mIOR{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mBaseColorFactor,
+                    mMetallicFactor,
+                    mRoughnessFactor,
+                    mBaseTextureIndex,
+                    mRoughnessTextureIndex,
+                    mAO,
+                    mEmissiveTextureIndex,
+                    mEmissiveFactor,
+                    mAlphaMode,
+                    mAlphaCutoff,
+                    mIOR);
+        }
     };
 
     struct Mesh
     {
-        std::vector<Vertex> mVertices{};
-        std::vector<uint32_t> mIndices{};
+        uint32_t mVertexOffset{};
+        uint32_t mIndexOffset{};
+        uint32_t mIndexCount{};
         int mMaterialIndex{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mVertexOffset, mIndexOffset, mIndexCount, mMaterialIndex);
+        }
     };
 
     struct Texture
     {
-        int mWidth {};
-        int mHeight {};
+        int mSamplerIndex{};
+        int mImageIndex{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mSamplerIndex, mImageIndex);
+        }
+    };
+
+    struct Sampler
+    {
+        TextureFilter mMinFilter{};
+        TextureFilter mMagFilter{};
+        TextureWrap mWrapS{};
+        TextureWrap mWrapT{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mMinFilter, mMagFilter, mWrapS, mWrapT);
+        }
+    };
+
+    struct Image
+    {
+        int mWidth{};
+        int mHeight{};
         std::vector<uint8_t> mPixels{};
     };
-    
+
+    struct Light
+    {
+        LightType mType{};
+        glm::vec3 mColor{};
+        float mIntensity{};
+        float mRange{};
+        float mInnerConeAngle{};
+        float mOuterConeAngle{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mType, mColor, mIntensity, mRange, mInnerConeAngle, mOuterConeAngle);
+        }
+    };
+
     struct Model
     {
-        std::vector<uint64_t> mRootNodes;
+        std::vector<uint32_t> mRootNodes{};
         std::vector<Node> mNodes{};
         std::vector<Mesh> mMeshes{};
         std::vector<Material> mMaterials{};
         std::vector<Texture> mTextures{};
+        std::vector<Sampler> mSamplers{};
+        std::vector<Image> mImages{};
+        std::vector<Light> mLights{};
 
-        uint32_t mTotalIndicesSize{};
-        uint32_t mTotalVerticesSize{};
+        std::vector<Vertex> mVertices{};
+        std::vector<uint32_t> mIndices{};
+
+        template <typename Archive>
+        void serialize(Archive& archive)
+        {
+            archive(mRootNodes, mNodes, mMeshes, mMaterials, mTextures, mSamplers, mLights, mVertices, mIndices);
+        }
     };
-    
 
     struct ResourceHandle
     {
@@ -76,4 +171,4 @@ struct std::hash<FS::ResourceHandle>
     {
         return handle.mResourceReference ? std::hash<std::string>{}(*handle.mResourceReference) : 0;
     }
-};  // namespace std
+};

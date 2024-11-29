@@ -13,7 +13,7 @@ namespace FS
         VulkanResourceLoader(const std::shared_ptr<VulkanContext>& context);
         ~VulkanResourceLoader();
 
-        void UploadModels(std::unordered_map<std::string, Model>& models);
+        void UploadModels();
         [[nodiscard]] std::span<VulkanModel> GetModels() { return mModels; }
         [[nodiscard]] VulkanDescriptor& GetDescriptor() { return mDescriptor; }
 

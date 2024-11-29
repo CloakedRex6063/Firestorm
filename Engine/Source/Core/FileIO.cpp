@@ -1,8 +1,8 @@
-#include "Core/FileSystem.h"
+#include "Core/FileIO.h"
 
 namespace FS
 {
-    FileSystem::FileSystem()
+    FileIO::FileIO()
     {
         mPaths[Directory::eEngineAssets] = EngineAssets;
         mPaths[Directory::eEngineShaders] = EngineShaders;
@@ -10,7 +10,7 @@ namespace FS
         mPaths[Directory::eGameConfig] = GameConfig;
     }
 
-    std::vector<char> FileSystem::ReadTextFile(const Directory directory, const std::string& path)
+    std::vector<char> FileIO::ReadTextFile(const Directory directory, const std::string& path)
     {
         const auto fullPath = GetPath(directory, path);
         std::ifstream file(fullPath);
@@ -27,7 +27,7 @@ namespace FS
         return buffer;
     }
 
-    std::vector<char> FileSystem::ReadBinaryFile(const Directory directory, const std::string& path)
+    std::vector<char> FileIO::ReadBinaryFile(const Directory directory, const std::string& path)
     {
         const auto fullPath = GetPath(directory, path);
         std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
@@ -44,7 +44,7 @@ namespace FS
         return {};
     }
 
-    std::string FileSystem::GetPath(const Directory directory, const std::string& path)
+    std::string FileIO::GetPath(const Directory directory, const std::string& path)
     {
         return mPaths[directory] + path;
     }

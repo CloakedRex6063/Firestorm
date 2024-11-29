@@ -1,10 +1,12 @@
-#version  460
-#extension GL_EXT_buffer_reference : require 
+#version 460
+#extension GL_EXT_buffer_reference : require
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outPos;
+layout(location = 4) out vec3 outCamPos;
+layout(location = 5) out flat uint outLightCount;
 
 struct Vertex
 {
@@ -15,31 +17,55 @@ struct Vertex
     vec4 color;
 };
 
-layout(buffer_reference, std430) readonly buffer VertexBuffer
+layout(buffer_reference, std430) readonly buffer VertexBuffer { Vertex vertices[]; };
+
+struct Material
 {
-    Vertex vertices[];
+    vec4 baseColorFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    int baseTextureIndex;
+    int roughnessTextureIndex;
 };
+
+struct Texture
+{
+    int samplerIndex;
+    int imageIndex;
+};
+
+layout(buffer_reference, std430) readonly buffer MaterialBuffer { Material materials[]; };
+
+layout(buffer_reference, std430) readonly buffer TextureBuffer { Texture textures[]; };
 
 layout(push_constant) uniform Constant
 {
     mat4 model;
     VertexBuffer vertexBuffer;
-} pushConstant;
+    MaterialBuffer materialBuffer;
+    TextureBuffer texBuffer;
+    int materialIndex;
+}
+pushConstant;
 
 layout(binding = 0) uniform UBO
 {
+    vec3 camPos;
+    uint lightCount;
     mat4 view;
     mat4 projection;
 };
 
-void main() 
+void main()
 {
     Vertex v = pushConstant.vertexBuffer.vertices[gl_VertexIndex];
-    
+
     gl_Position = projection * view * pushConstant.model * vec4(v.position, 1.0);
     outUV = vec2(v.uvX, v.uvY);
     outPos = vec3(pushConstant.model * vec4(v.position, 1.0));
+    outCamPos = vec3(camPos);
     outColor = v.color;
+    outLightCount = lightCount;
     // TODO: calculate normals on cpu as inverse is an expensive operation
     outNormal = mat3(transpose(inverse(pushConstant.model))) * v.normal;
 }

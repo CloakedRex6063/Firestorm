@@ -2,7 +2,6 @@
 #include "Core/Render/Vulkan/VulkanConstants.hpp"
 #include "VulkanCommand.h"
 #include "VulkanSync.h"
-#include "Resources/VulkanModel.h"
 #include "Core/Render/Renderer.h"
 
 namespace FS
@@ -27,14 +26,14 @@ namespace FS
 
         [[nodiscard]] VulkanContext& GetContext() const { return *mContext; }
         [[nodiscard]] VulkanSwapchain& GetSwapchain() const { return *mSwapchain; }
-        [[nodiscard]] VulkanResourceLoader& GetResourceLoader() const { return *mModelManager; }
+        [[nodiscard]] VulkanResourceLoader& GetResourceLoader() const { return *mResourceLoader; }
         [[nodiscard]] VulkanGeometryPipeline& GetGeometryPipeline() const { return *mGeometryPipeline; }
 
     private:
         struct FrameData;
         [[nodiscard]] FrameData& GetFrameData() const { return *mFrameData[mFrameIndex]; }
-        
-        void RenderGeometry(const VulkanCommand& command) const;
+
+        void RenderGeometry(const VulkanCommand& command);
 
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanSwapchain> mSwapchain;
@@ -51,10 +50,18 @@ namespace FS
         uint32_t mFrameIndex = 0;
 
         std::unique_ptr<VulkanBuffer> mUniformBuffer;
+        struct UBO
+        {
+            glm::vec3 mCamPos;
+            uint32_t mLightCount;
+            glm::mat4 mView;
+            glm::mat4 mProjection;
+        } mUBO;
         void* mappedBuffer;
+
         VkDescriptorPool mImGuiDescriptorPool;
 
         std::unique_ptr<VulkanImage> mDepthImage;
-        std::unique_ptr<VulkanResourceLoader> mModelManager;
+        std::unique_ptr<VulkanResourceLoader> mResourceLoader;
     };
 }  // namespace FS

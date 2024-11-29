@@ -1,29 +1,24 @@
 #include "Core/Render/Vulkan/VulkanContext.h"
+#include "Core/Context.h"
 #include "Core/Engine.h"
-#include "Core/FileSystem.h"
+#include "Core/FileIO.h"
 #include "Core/Render/Vulkan/VulkanCommand.h"
 #include "Core/Render/Vulkan/VulkanQueue.h"
 #include "Core/Render/Vulkan/VulkanSync.h"
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
-#include "Core/Render/Window.h"
 #include "Core/Render/Vulkan/VulkanConstants.hpp"
-
-#include <complex.h>
-#include <complex.h>
-#include <complex.h>
-#include <complex.h>
 
 namespace FS
 {
-    VulkanContext::VulkanContext(const Window& window)
+    VulkanContext::VulkanContext()
     {
         CreateInstance();
-        ChoosePhysicalDevice(window);
+        ChoosePhysicalDevice();
         CreateDevice();
         CreateQueues();
         CreateAllocator();
     }
-
+    
     VulkanContext::~VulkanContext()
     {
         vkb::destroy_surface(mInstance, mSurface);
@@ -64,9 +59,9 @@ namespace FS
         mInstance = instanceReturn.value();
     }
 
-    void VulkanContext::ChoosePhysicalDevice(const Window& window)
+    void VulkanContext::ChoosePhysicalDevice()
     {
-        mSurface = window.CreateSurface(mInstance);
+        mSurface = gEngine.Context().CreateSurface(mInstance);
         vkb::PhysicalDeviceSelector selector(mInstance);
         VkPhysicalDeviceVulkan12Features features12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
                                                     .descriptorIndexing = true,
@@ -386,7 +381,7 @@ namespace FS
 
     VkShaderModule VulkanContext::CreateShaderModule(const std::string& codePath) const
     {
-        const auto code = gEngine.FileSystem().ReadBinaryFile(Directory::eNone, codePath);
+        const auto code = gEngine.FileIO().ReadBinaryFile(Directory::eNone, codePath);
         const VkShaderModuleCreateInfo shaderModuleInfo = {.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                                                            .codeSize = code.size(),
                                                            .pCode = reinterpret_cast<const uint32_t*>(code.data())};

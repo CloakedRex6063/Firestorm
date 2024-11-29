@@ -1,25 +1,25 @@
 #pragma once
 
 struct SDL_Window;
-
 namespace FS
 {
     struct WindowDeleter
     {
         void operator()(SDL_Window* window) const;
     };
-    
-    class Window
+    class Context
     {
     public:
-        Window();
-
-        [[nodiscard]] SDL_Window& GetSDLWindow() const {return *mWindow;}
-        [[nodiscard]] bool IsRunning() const;
+        Context();
+        [[nodiscard]] operator SDL_Window&() const { return *mWindow; };
+        [[nodiscard]] glm::uvec2 GetWindowSize() const;
+        
+        [[nodiscard]] bool IsRunning() const {return mRunning;};
         [[nodiscard]] VkSurfaceKHR CreateSurface(const VkInstance& instance) const;
-        [[nodiscard]] glm::uvec2 GetSize() const;
         [[nodiscard]] std::vector<const char*> RequiredExtensions() const;
+        
         void PollEvents();
+        static void LockMouse(bool toggle);
 
     private:
         std::unique_ptr<SDL_Window, WindowDeleter> mWindow;

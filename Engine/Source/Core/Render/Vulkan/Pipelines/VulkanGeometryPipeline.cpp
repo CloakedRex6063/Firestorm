@@ -1,17 +1,17 @@
 #include "Core/Render/Vulkan/Pipelines/VulkanGeometryPipeline.h"
 #include "Core/Engine.h"
+#include "Core/FileIO.h"
 #include "Core/Render/Vulkan/Resources/VulkanModel.h"
-#include "Core/FileSystem.h"
 
 namespace FS
 {
     VulkanGeometryPipeline::VulkanGeometryPipeline(const std::shared_ptr<VulkanContext>& context,
-                                       VkDescriptorSetLayout setLayout,
-                                       const glm::uvec2& size)
+                                                   VkDescriptorSetLayout setLayout,
+                                                   const glm::uvec2& size)
         : mPipelineBuilder(context)
     {
-        const auto vertexShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "mesh.vert.spv");
-        const auto fragmentShader = gEngine.FileSystem().GetPath(Directory::eEngineShaders, "mesh.frag.spv");
+        const auto vertexShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "mesh.vert.spv");
+        const auto fragmentShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "mesh.frag.spv");
 
         VkPushConstantRange pushConstantRange = {.stageFlags = VK_SHADER_STAGE_ALL, .size = sizeof(ModelPushConstant)};
 

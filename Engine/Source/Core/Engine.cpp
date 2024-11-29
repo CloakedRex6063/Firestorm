@@ -1,8 +1,10 @@
 #include "Core/Engine.h"
-#include "Core/FileSystem.h"
+#include "Core/Context.h"
+#include "Core/FileIO.h"
 #include "Core/Render/Vulkan/VulkanRenderer.h"
 #include "Core/ECS.h"
-#include "Core/ResourceSystem.h"
+#include "Core/Input.h"
+#include "Core/ResourceManager.h"
 #include "Systems/CameraSystem.h"
 #include "Tools/Log.h"
 
@@ -13,9 +15,11 @@ namespace FS
     Engine::Engine()
     {
         mLog = std::make_shared<FS::Log>();
-        mFileSystem = std::make_shared<FS::FileSystem>();
+        mContext = std::make_shared<FS::Context>();
+        mInput = std::make_shared<FS::Input>();
+        mFileIO = std::make_shared<FS::FileIO>();
         mECS = std::make_shared<FS::ECS>();
-        mResourceSystem = std::make_shared<FS::ResourceSystem>();
+        mResourceManager = std::make_shared<FS::ResourceManager>();
         mRenderer = std::make_shared<VulkanRenderer>();
 
         gEngine.AddSystem<CameraSystem>();

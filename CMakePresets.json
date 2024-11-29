@@ -11,11 +11,7 @@
             "name": "default", 
             "hidden": true, 
             "generator": "Visual Studio 17 2022", 
-            "binaryDir": "${sourceDir}/Build/${presetName}",
-            "cacheVariables": 
-            {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-            }
+            "binaryDir": "${sourceDir}/Build/${presetName}"
         },
         {
             "name": "Debug",

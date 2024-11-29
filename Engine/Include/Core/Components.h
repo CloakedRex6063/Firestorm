@@ -1,6 +1,6 @@
 #pragma once
+#include "glm/fwd.hpp"
 #include "Core/Render/Resources/Model.hpp"
-#include "Render/Vulkan/Tools/Enums.hpp"
 #include "Tools/Enums.h"
 
 namespace FS::Component
@@ -8,7 +8,7 @@ namespace FS::Component
     struct Hierarchy
     {
         Entity mParent = NullEntity;
-        std::vector<Entity> mChildren;
+        std::vector<Entity> mChildren{};
     };
     
     struct Name
@@ -18,10 +18,14 @@ namespace FS::Component
 
     struct Transform
     {
-        glm::vec3 mPosition;
-        glm::vec3 mRotation;
-        glm::vec3 mScale;
+        glm::vec3 mPosition{};
+        glm::vec3 mRotation{};
+        glm::vec3 mScale{};
         glm::mat4 mWorldMatrix = glm::mat4(1.0f);
+
+        glm::vec3 GetWorldPosition() { return glm::vec3(mWorldMatrix[3]); }
+        glm::vec3 GetWorldRotation();
+        glm::vec3 GetWorldScale();
     };
 
     struct Renderable

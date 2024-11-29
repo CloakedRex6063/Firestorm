@@ -4,60 +4,45 @@
 
 namespace FS
 {
-    struct VulkanMesh
-    {
-        uint32_t mVertexOffset;
-        uint32_t mIndexOffset;
-        uint32_t mIndexCount;
-        int mMaterialIndex;
-    };
-
     struct ModelPushConstant
     {
         glm::mat4 mModel;
         VkDeviceAddress mVertexAddress;
         VkDeviceAddress mMaterialAddress;
+        VkDeviceAddress mTextureAddress;
         int mMaterialBaseIndex;
-        uint32_t mLightCount;
     };
 
     class VulkanModel
     {
     public:
         VulkanModel(const std::shared_ptr<VulkanContext>& context,
-                    uint64_t verticesSize,
-                    uint64_t indicesSize,
-                    std::vector<VulkanMesh>&& meshes,
+                    uint32_t verticesSize,
+                    uint32_t indicesSize,
+                    std::vector<Mesh>&& meshes,
                     std::vector<Node>&& nodes,
-                    std::vector<uint64_t>&& rootNodes,
+                    std::vector<uint32_t>&& rootNodes,
                     std::vector<Material>&& materials,
-                    std::vector<VulkanImage>&& textures);
+                    std::vector<Texture>&& textures,
+                    std::vector<Sampler>&& samplers,
+                    std::vector<VulkanImage>&& images);
         NON_COPYABLE(VulkanModel);
         MOVABLE(VulkanModel);
 
-        [[nodiscard]] VulkanBuffer& GetVertexBuffer() { return mVertexBuffer; }
-        [[nodiscard]] VulkanBuffer& GetIndexBuffer() { return mIndexBuffer; }
-        [[nodiscard]] VulkanBuffer& GetMaterialBuffer() { return mMaterialBuffer; }
-        [[nodiscard]] VkDeviceAddress GetVertexBufferAddress() const { return mVertexBufferAddress; }
-        [[nodiscard]] VkDeviceAddress GetMaterialBufferAddress() const { return mMaterialBufferAddress; }
-
-        [[nodiscard]] std::span<uint64_t> GetRootNodeIndices() { return mRootNodes; }
-        [[nodiscard]] std::span<Node> GetNodes() { return mNodes; }
-        [[nodiscard]] std::span<Material> GetMaterials() { return mMaterials; }
-        [[nodiscard]] std::span<VulkanImage> GetTextures() { return mTextures; }
-        [[nodiscard]] std::span<VulkanMesh> GetMeshes() { return mMeshes; }
-
-    private:
         VulkanBuffer mVertexBuffer;
         VulkanBuffer mIndexBuffer;
         VulkanBuffer mMaterialBuffer;
+        VulkanBuffer mTextureBuffer;
         VkDeviceAddress mVertexBufferAddress{};
         VkDeviceAddress mMaterialBufferAddress{};
-        
-        std::vector<uint64_t> mRootNodes;
+        VkDeviceAddress mTextureBufferAddress{};
+
+        std::vector<uint32_t> mRootNodes;
         std::vector<Node> mNodes;
-        std::vector<VulkanMesh> mMeshes;
+        std::vector<Mesh> mMeshes;
         std::vector<Material> mMaterials;
-        std::vector<VulkanImage> mTextures;
+        std::vector<Texture> mTextures;
+        std::vector<Sampler> mSamplers;
+        std::vector<VulkanImage> mImages;
     };
-} // namespace FS
+}  // namespace FS
