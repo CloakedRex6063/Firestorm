@@ -11,9 +11,14 @@
 #include "unordered_set"
 
 #include "vma/vk_mem_alloc.h"
+#define VK_NO_PROTOTYPES
 #include "vulkan/vulkan.h"
 #include "VkBootstrap.h"
 #include "entt/entt.hpp"
+
+extern PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasks;
+extern PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCount;
+extern PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirect;
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

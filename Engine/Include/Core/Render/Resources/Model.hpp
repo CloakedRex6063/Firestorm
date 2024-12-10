@@ -9,12 +9,11 @@ namespace FS
         float mUVx{};
         glm::vec3 mNormal{};
         float mUVy{};
-        glm::vec4 mColor{};
 
         template <typename Archive>
         void serialize(Archive& archive)
         {
-            archive(mPosition, mUVx, mNormal, mUVy, mColor);
+            archive(mPosition, mUVx, mNormal, mUVy);
         }
     };
 
@@ -38,6 +37,7 @@ namespace FS
         float mMetallicFactor{};
         float mRoughnessFactor{};
         int mBaseTextureIndex{};
+        int mNormalTextureIndex{};
         int mRoughnessTextureIndex{};
         int mOcclusionTextureIndex{};
         float mAO{};
@@ -105,13 +105,6 @@ namespace FS
         }
     };
 
-    struct Image
-    {
-        int mWidth{};
-        int mHeight{};
-        std::vector<uint8_t> mPixels{};
-    };
-
     struct Light
     {
         LightType mType{};
@@ -135,9 +128,7 @@ namespace FS
         std::vector<Mesh> mMeshes{};
         std::vector<Material> mMaterials{};
         std::vector<Texture> mTextures{};
-        std::vector<Sampler> mSamplers{};
-        std::vector<Image> mImages{};
-        std::vector<Light> mLights{};
+        std::vector<std::string> mImageURIs{};
 
         std::vector<Vertex> mVertices{};
         std::vector<uint32_t> mIndices{};
@@ -145,7 +136,7 @@ namespace FS
         template <typename Archive>
         void serialize(Archive& archive)
         {
-            archive(mRootNodes, mNodes, mMeshes, mMaterials, mTextures, mSamplers, mLights, mVertices, mIndices);
+            archive(mRootNodes, mNodes, mMeshes, mMaterials, mTextures, mImageURIs, mVertices, mIndices);
         }
     };
 

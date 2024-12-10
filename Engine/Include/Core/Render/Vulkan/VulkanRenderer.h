@@ -2,11 +2,12 @@
 #include "Core/Render/Vulkan/VulkanConstants.hpp"
 #include "VulkanCommand.h"
 #include "VulkanSync.h"
+#include "ktxvulkan.h"
 #include "Core/Render/Renderer.h"
 
 namespace FS
 {
-    struct Vertex;
+    class VulkanMeshPipeline;
     class VulkanResourceLoader;
     class VulkanImage;
     class VulkanSwapchain;
@@ -34,10 +35,12 @@ namespace FS
         [[nodiscard]] FrameData& GetFrameData() const { return *mFrameData[mFrameIndex]; }
 
         void RenderGeometry(const VulkanCommand& command);
+        void RenderMesh(const VulkanCommand& command);
 
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanSwapchain> mSwapchain;
         std::unique_ptr<VulkanGeometryPipeline> mGeometryPipeline;
+        std::unique_ptr<VulkanMeshPipeline> mMeshPipeline;
 
         struct FrameData
         {
@@ -56,7 +59,7 @@ namespace FS
             uint32_t mLightCount;
             glm::mat4 mView;
             glm::mat4 mProjection;
-        } mUBO;
+        } mUBO{};
         void* mappedBuffer;
 
         VkDescriptorPool mImGuiDescriptorPool;

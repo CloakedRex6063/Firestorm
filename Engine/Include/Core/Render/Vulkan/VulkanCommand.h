@@ -48,6 +48,7 @@ namespace FS
                          uint32_t vertexOffset = 0,
                          uint32_t instanceOffset = 0) const;
         void DrawIndexedIndirect(VkBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) const;
+        void DrawMeshEXT(uint32_t countX, uint32_t countY, uint32_t countZ) const;
 
         void TransitionImageLayout(VkImage currentImage, ImageLayout oldLayout, ImageLayout newLayout) const;
 

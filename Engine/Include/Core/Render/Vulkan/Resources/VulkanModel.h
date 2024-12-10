@@ -2,6 +2,8 @@
 #include "VulkanBuffer.h"
 #include "VulkanImage.h"
 
+#include <Core/Render/Resources/Model.hpp>
+
 namespace FS
 {
     struct ModelPushConstant
@@ -13,36 +15,32 @@ namespace FS
         int mMaterialBaseIndex;
     };
 
-    class VulkanModel
+    struct VulkanModel
     {
-    public:
         VulkanModel(const std::shared_ptr<VulkanContext>& context,
                     uint32_t verticesSize,
                     uint32_t indicesSize,
-                    std::vector<Mesh>&& meshes,
-                    std::vector<Node>&& nodes,
-                    std::vector<uint32_t>&& rootNodes,
-                    std::vector<Material>&& materials,
-                    std::vector<Texture>&& textures,
-                    std::vector<Sampler>&& samplers,
-                    std::vector<VulkanImage>&& images);
+                    uint32_t materialSize,
+                    uint32_t textureSize,
+                    std::vector<VulkanImage>&& images,
+                    const std::vector<uint32_t>& mRootNodes,
+                    const std::vector<Node>& nodes,
+                    const std::vector<Mesh>& meshes);
         NON_COPYABLE(VulkanModel);
         MOVABLE(VulkanModel);
-
-        VulkanBuffer mVertexBuffer;
-        VulkanBuffer mIndexBuffer;
-        VulkanBuffer mMaterialBuffer;
-        VulkanBuffer mTextureBuffer;
-        VkDeviceAddress mVertexBufferAddress{};
-        VkDeviceAddress mMaterialBufferAddress{};
-        VkDeviceAddress mTextureBufferAddress{};
 
         std::vector<uint32_t> mRootNodes;
         std::vector<Node> mNodes;
         std::vector<Mesh> mMeshes;
-        std::vector<Material> mMaterials;
-        std::vector<Texture> mTextures;
-        std::vector<Sampler> mSamplers;
         std::vector<VulkanImage> mImages;
+        
+        VulkanBuffer mVertexBuffer;
+        VulkanBuffer mIndexBuffer;
+        VulkanBuffer mMaterialBuffer;
+        VulkanBuffer mTextureBuffer;
+        
+        VkDeviceAddress mVertexBufferAddress{};
+        VkDeviceAddress mMaterialBufferAddress{};
+        VkDeviceAddress mTextureBufferAddress{};
     };
 }  // namespace FS

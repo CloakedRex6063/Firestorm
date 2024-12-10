@@ -85,6 +85,11 @@ namespace FS
     {
         vkCmdDrawIndexedIndirect(mCommandBuffer, buffer, offset, drawCount, stride);
     }
+    
+    void VulkanCommand::DrawMeshEXT(const uint32_t countX, const uint32_t countY, const uint32_t countZ) const
+    {
+        vkCmdDrawMeshTasks(mCommandBuffer, countX, countY, countZ);
+    }
 
     void VulkanCommand::EndRendering() const { vkCmdEndRendering(mCommandBuffer); }
 

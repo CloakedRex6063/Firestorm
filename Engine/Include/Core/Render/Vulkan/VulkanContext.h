@@ -22,6 +22,7 @@ namespace FS
 
         [[nodiscard]] VkInstance GetInstance() const { return mInstance; }
         [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const { return mPhysicalDevice; }
+        [[nodiscard]] VkDevice GetDevice() const { return mDevice; }
         [[nodiscard]] VmaAllocator GetAllocator() const { return mAllocator; }
         [[nodiscard]] VulkanQueue& GetGraphicsQueue() const { return *mGraphicsQueue; }
         [[nodiscard]] std::shared_ptr<VulkanQueue> GetSharedGraphicsQueue() const { return mGraphicsQueue; }
@@ -49,6 +50,7 @@ namespace FS
         [[nodiscard]] VmaAllocationInfo GetAllocationInfo(VmaAllocation allocation) const;
 
         [[nodiscard]] void* MapMemory(VmaAllocation allocation) const;
+        void CopyMemoryToAllocation(VmaAllocation allocation, const void* data, VkDeviceSize offset, VkDeviceSize size) const;
         void UnmapMemory(VmaAllocation allocation) const;
 
         [[nodiscard]] VkDescriptorPool CreateDescriptorPool(uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const;

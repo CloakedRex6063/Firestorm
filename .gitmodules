@@ -16,3 +16,6 @@
 [submodule "Engine/External/Cereal"]
 	path = Engine/External/Cereal
 	url = https://github.com/USCiLab/cereal
+[submodule "Engine/External/KTX"]
+	path = Engine/External/KTX
+	url = https://github.com/KhronosGroup/KTX-Software

@@ -6,24 +6,20 @@ namespace FS
     VulkanModel::VulkanModel(const std::shared_ptr<VulkanContext>& context,
                              const uint32_t verticesSize,
                              const uint32_t indicesSize,
-                             std::vector<Mesh>&& meshes,
-                             std::vector<Node>&& nodes,
-                             std::vector<uint32_t>&& rootNodes,
-                             std::vector<Material>&& materials,
-                             std::vector<Texture>&& textures,
-                             std::vector<Sampler>&& samplers,
-                             std::vector<VulkanImage>&& images)
-        : mVertexBuffer(context, BufferType::eVertex, verticesSize),
+                             const uint32_t materialSize,
+                             const uint32_t textureSize,
+                             std::vector<VulkanImage>&& images,
+                             const std::vector<uint32_t>& mRootNodes,
+                             const std::vector<Node>& nodes,
+                             const std::vector<Mesh>& meshes)
+        : mRootNodes(mRootNodes),
+          mNodes(nodes),
+          mMeshes(meshes),
+          mImages(std::move(images)),
+          mVertexBuffer(context, BufferType::eVertex, verticesSize),
           mIndexBuffer(context, BufferType::eIndex, indicesSize),
-          mMaterialBuffer(context, BufferType::eVertex, materials.size() * sizeof(Material)),
-          mTextureBuffer(context, BufferType::eVertex, textures.size() * sizeof(Texture)),
-          mRootNodes(std::move(rootNodes)),
-          mNodes(std::move(nodes)),
-          mMeshes(std::move(meshes)),
-          mMaterials(std::move(materials)),
-          mTextures(std::move(textures)),
-          mSamplers(std::move(samplers)),
-          mImages(std::move(images))
+          mMaterialBuffer(context, BufferType::eMappedStorage, materialSize),
+          mTextureBuffer(context, BufferType::eMappedStorage, textureSize)
     {
         const VkBufferDeviceAddressInfo vertexBufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                                                          .buffer = mVertexBuffer};

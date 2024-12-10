@@ -2,7 +2,6 @@
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(location = 0) in vec4 inColor;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inPos;
@@ -17,7 +16,6 @@ struct Vertex
     float uvX;
     vec3 normal;
     float uvY;
-    vec4 color;
 };
 
 struct Material
@@ -26,6 +24,7 @@ struct Material
     float metallicFactor;
     float roughnessFactor;
     int baseTextureIndex;
+    int normalTextureIndex;
     int roughnessTextureIndex;
     int occlusionTextureIndex;
     float ao;
@@ -68,7 +67,7 @@ struct Light
     vec3 direction;
 };
 
-layout(binding = 1) uniform sampler2D samplers[];
+layout(binding = 0) uniform sampler2D samplers[];
 
 layout(binding = 2) readonly buffer LightBuffer { Light lights[]; };
 
@@ -111,12 +110,54 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 void main()
 {
     Material material = pushConstant.materialBuffer.materials[pushConstant.materialIndex];
-    Texture tex = pushConstant.texBuffer.textures[material.baseTextureIndex];
+    
+    bool useBaseTexture = material.baseTextureIndex != -1;
+    bool useEmissiveTexture = material.emissiveTextureIndex != -1;
+    bool useOcclusionTexture = material.occlusionTextureIndex != -1;
+    bool useRoughnessTexture = material.roughnessTextureIndex != -1;
+    bool useNormalTexture = material.normalTextureIndex != -1;
+    
+    
+    vec4 baseColor = material.baseColorFactor;
+    if(useBaseTexture)
+    {
+        Texture tex = pushConstant.texBuffer.textures[material.baseTextureIndex];
+        baseColor = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+    }
+    
+    vec4 emissive = vec4(0);
+    if(useEmissiveTexture)
+    {
+        Texture tex = pushConstant.texBuffer.textures[material.emissiveTextureIndex];
+        emissive = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+    }
+    
+    float occlusion = material.occlusionTextureIndex;
+    float metal = material.metallicFactor;
+    float rough = material.roughnessFactor;
+    if(useRoughnessTexture)
+    {
+        Texture tex = pushConstant.texBuffer.textures[material.roughnessTextureIndex];
+        vec4 orm = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+        occlusion = orm.r;
+        rough = orm.g * material.roughnessFactor;
+        metal = orm.b * material.metallicFactor;
+    }
+    
+    if(useOcclusionTexture)
+    {
+        Texture tex = pushConstant.texBuffer.textures[material.occlusionTextureIndex];
+        occlusion = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2)).r;
+    }
+    occlusion *= material.ao;
+    
+    if(useNormalTexture)
+    {
+        //TODO
+    }
+    
 
-    vec3 albedo = pow(texture(samplers[tex.imageIndex], inUV).rgb, vec3(2.2));
-    vec4 baseColor = material.baseTextureIndex != -1 ? vec4(albedo, 1.0) : material.baseColorFactor;
-
-    vec3 N = normalize(inNormal);
+    vec3 N = inNormal;
     vec3 V = normalize(inCamPos - inPos);
 
     vec3 F0 = vec3(0.04);
@@ -133,13 +174,13 @@ void main()
         float attenutation = 1 / distance * distance;
         vec3 radiance = light.color * attenutation;
 
-        float NDF = DistributionGGX(N, H, material.roughnessFactor);
-        float G = GeometrySmith(N, V, L, material.roughnessFactor);
+        float NDF = DistributionGGX(N, H, rough);
+        float G = GeometrySmith(N, V, L, rough);
         vec3 F = FresnelShlick(max(dot(H, V), 0.0), F0);
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - material.metallicFactor;
+        kD *= 1.0 - metal;
 
         vec3 num = NDF * G * F;
         float denom = 4 * max(dot(N, V), 0) * max(dot(N, L), 0.0) + 0.0001;
@@ -148,10 +189,10 @@ void main()
         float NdotL = max(dot(N, L), 0.0);
         Lo += (kD * vec3(baseColor) / PI + specular) * radiance * NdotL;
     }
-    vec3 ambient = vec3(0.03) * vec3(baseColor) * material.ao;
-    vec3 color = ambient + Lo;
+    vec3 ambient = vec3(0.03) * vec3(baseColor) * occlusion;
+    vec3 color = ambient + Lo + emissive.rgb;
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 
-    outFragColor = vec4(color, 1.0) * inColor;
+    outFragColor = vec4(color, 1.0);
 }

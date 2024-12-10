@@ -17,6 +17,9 @@
 #include "Systems/CameraSystem.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_vulkan.h"
+#include "Core/FileIO.h"
+#include "Core/Render/Vulkan/Pipelines/VulkanMeshPipeline.h"
+#include "ktxvulkan.h"
 
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
@@ -32,6 +35,8 @@ namespace FS
         mResourceLoader = std::make_unique<VulkanResourceLoader>(mContext);
         mGeometryPipeline =
             std::make_unique<VulkanGeometryPipeline>(mContext, GetResourceLoader().GetDescriptor().GetLayout(), size);
+        mMeshPipeline =
+            std::make_unique<VulkanMeshPipeline>(mContext, GetResourceLoader().GetDescriptor().GetLayout(), size);
 
         for (auto& frame : mFrameData)
         {
@@ -140,15 +145,16 @@ namespace FS
 
         command.BeginRendering(currentImage.GetView(), mDepthImage->GetView(), GetSwapchain().GetExtent());
 
+        //RenderMesh(command);
         RenderGeometry(command);
 
         command.EndRendering();
 
-        command.BeginRendering(currentImage.GetView(), nullptr, GetSwapchain().GetExtent(), false);
-
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
-
-        command.EndRendering();
+        // command.BeginRendering(currentImage.GetView(), nullptr, GetSwapchain().GetExtent(), false);
+        //
+        // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
+        //
+        // command.EndRendering();
 
         command.TransitionImageLayout(currentImage, ImageLayout::eColorAttachment, ImageLayout::ePresent);
 
@@ -184,22 +190,23 @@ namespace FS
         mUBO.mProjection = camera.GetProjectionMatrix();
         mUBO.mView = camera.GetViewMatrix();
         memcpy(mappedBuffer, &mUBO, sizeof(UBO));
-
+        
         ModelPushConstant pushConstant{};
         for (auto [index, model] : std::views::enumerate(GetResourceLoader().GetModels()))
         {
             command.BindIndexBuffer(model.mIndexBuffer, 0);
-
+        
             command.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                       GetGeometryPipeline().GetLayout(),
                                       GetResourceLoader().GetDescriptor());
-
+        
             auto parentTransform = glm::mat4(1.0f);
             for (const auto& nodeIndex : model.mRootNodes)
             {
                 auto& [mTransform, mMeshIndex, mLightIndex, mChildren] = model.mNodes[nodeIndex];
                 const auto& [mVertexOffset, mIndexOffset, mIndexCount, mMaterialIndex] = model.mMeshes[mMeshIndex];
-                pushConstant.mModel = parentTransform * mTransform, pushConstant.mVertexAddress = model.mVertexBufferAddress,
+                pushConstant.mModel = parentTransform * mTransform,
+                pushConstant.mVertexAddress = model.mVertexBufferAddress,
                 pushConstant.mMaterialAddress = model.mMaterialBufferAddress,
                 pushConstant.mTextureAddress = model.mTextureBufferAddress;
                 pushConstant.mMaterialBaseIndex = mMaterialIndex;
@@ -222,5 +229,14 @@ namespace FS
                 }
             }
         }
+    }
+
+    void VulkanRenderer::RenderMesh(const VulkanCommand& command)
+    {
+        command.BindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, *mMeshPipeline);
+        command.BindDescriptorSet(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  mMeshPipeline->GetLayout(),
+                                  GetResourceLoader().GetDescriptor());
+        command.DrawMeshEXT(1,1,1);
     }
 }  // namespace FS

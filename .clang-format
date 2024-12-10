@@ -13,6 +13,12 @@ AlignAfterOpenBracket: Align
 BreakBeforeBraces: Allman
 BinPackArguments: false
 BinPackParameters: false
+AlignOperands: AlignAfterOperator
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: False
+PenaltyBreakAssignment: 10
+PenaltyBreakBeforeFirstCallParameter: 20
+PenaltyExcessCharacter: 100
 ExperimentalAutoDetectBinPacking: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowAllArgumentsOnNextLine: false

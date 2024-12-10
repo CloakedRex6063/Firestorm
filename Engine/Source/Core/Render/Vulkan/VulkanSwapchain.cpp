@@ -37,7 +37,7 @@ namespace FS
             .oldSwapchain = oldSwapchain,
         };
 
-        VK_ASSERT(vkCreateSwapchainKHR(*mContext, &createInfo, nullptr, &mSwapchain))
+        vkCreateSwapchainKHR(*mContext, &createInfo, nullptr, &mSwapchain);
         CreateImages();
 
         if (oldSwapchain != VK_NULL_HANDLE)

@@ -22,25 +22,75 @@ namespace FS
     template <typename T>
     void Serializer::Serialize(const std::string& path, const T& data)
     {
-        std::ofstream os(path, std::ios::binary | std::ios::ate);
-        cereal::BinaryOutputArchive output(os);
-        output(data);
+        std::ofstream os(path, std::ios::binary);
+        if (!os.is_open())
+        {
+            Log::Error("Failed to open file for writing: {}", path);
+            return;
+        }
+
+        try
+        {
+            cereal::BinaryOutputArchive output(os);
+            output(data);
+            os.flush(); // Ensure data is written to disk
+        }
+        catch (const cereal::Exception& e)
+        {
+            Log::Error("Cereal serialization error: {}", e.what());
+        }
+        catch (const std::exception& e)
+        {
+            Log::Error("General serialization error: {}", e.what());
+        }
+        catch (...)
+        {
+            Log::Error("Unknown serialization error");
+        }
     }
+
     template <typename T>
     std::optional<T> Serializer::Deserialize(const std::string& path)
     {
-        std::ifstream is(path.c_str(), std::ios::binary | std::ios::ate);
-        cereal::BinaryInputArchive input(is);
+        std::ifstream is(path, std::ios::binary);
+        if (!is.is_open())
+        {
+            Log::Error("Failed to open file for reading: {}", path);
+            return std::nullopt;
+        }
+
+        // Optional file size check (debugging)
+        is.seekg(0, std::ios::end);
+        std::streamsize size = is.tellg();
+        if (size <= 0)
+        {
+            Log::Error("File is empty or invalid: {}", path);
+            return std::nullopt;
+        }
+        is.seekg(0, std::ios::beg); // Reset position
+
         T data;
         try
         {
+            cereal::BinaryInputArchive input(is);
             input(data);
         }
         catch (const cereal::Exception& e)
         {
-            Log::Error("Error while deserializing {}", e.what());
+            Log::Error("Cereal deserialization error: {}", e.what());
             return std::nullopt;
         }
+        catch (const std::exception& e)
+        {
+            Log::Error("General deserialization error: {}", e.what());
+            return std::nullopt;
+        }
+        catch (...)
+        {
+            Log::Error("Unknown deserialization error");
+            return std::nullopt;
+        }
+
         return data;
     }
 

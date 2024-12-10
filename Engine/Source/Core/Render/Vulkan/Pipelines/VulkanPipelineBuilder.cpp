@@ -12,8 +12,7 @@ namespace FS
         mDynamicState = {.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
 
         mVertexInputState = {.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
-        mInputAssembly = {.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                          .primitiveRestartEnable = false};
+        mInputAssembly = {.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
 
         mViewportState = {.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
                           .viewportCount = 1,
@@ -82,9 +81,9 @@ namespace FS
     }
 
     VulkanPipelineBuilder& VulkanPipelineBuilder::AddInputAttribute(const uint32_t binding,
-                                                        const uint32_t location,
-                                                        const VkFormat format,
-                                                        const uint32_t offset)
+                                                                    const uint32_t location,
+                                                                    const VkFormat format,
+                                                                    const uint32_t offset)
     {
         VkVertexInputAttributeDescription attributeDescription = {.location = location,
                                                                   .binding = binding,
@@ -94,6 +93,13 @@ namespace FS
         return *this;
     }
 
+    VulkanPipelineBuilder& VulkanPipelineBuilder::AddMeshShader(const std::string& codePath)
+    {
+        mShaderModules[0] = mContext->CreateShaderModule(codePath);
+        mShaderStages[0] = VulkanUtils::CreateShaderStageInfo(VK_SHADER_STAGE_MESH_BIT_EXT, mShaderModules[0]);
+        return *this;
+    }
+    
     VulkanPipelineBuilder& VulkanPipelineBuilder::AddVertexShader(const std::string& codePath)
     {
         mShaderModules[0] = mContext->CreateShaderModule(codePath);

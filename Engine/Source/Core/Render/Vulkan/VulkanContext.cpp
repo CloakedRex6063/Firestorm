@@ -8,6 +8,10 @@
 #include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 #include "Core/Render/Vulkan/VulkanConstants.hpp"
 
+PFN_vkCmdDrawMeshTasksEXT vkCmdDrawMeshTasks = nullptr;
+PFN_vkCmdDrawMeshTasksIndirectCountEXT vkCmdDrawMeshTasksIndirectCount = nullptr;
+PFN_vkCmdDrawMeshTasksIndirectEXT vkCmdDrawMeshTasksIndirect = nullptr;
+
 namespace FS
 {
     VulkanContext::VulkanContext()
@@ -15,10 +19,11 @@ namespace FS
         CreateInstance();
         ChoosePhysicalDevice();
         CreateDevice();
+
         CreateQueues();
         CreateAllocator();
     }
-    
+
     VulkanContext::~VulkanContext()
     {
         vkb::destroy_surface(mInstance, mSurface);
@@ -75,9 +80,16 @@ namespace FS
                                                     .bufferDeviceAddress = true};
         VkPhysicalDeviceVulkan13Features features13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
                                                     .synchronization2 = true,
-                                                    .dynamicRendering = true};
+                                                    .dynamicRendering = true,
+                                                    .maintenance4 = true};
+        VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+            .taskShader = true,
+            .meshShader = true
+        };
         auto physicalDeviceReturn = selector.set_minimum_version(1, 3)
                                         .set_surface(mSurface)
+                                        .add_required_extension_features(meshFeatures)
                                         .set_required_features_12(features12)
                                         .set_required_features_13(features13)
                                         .require_separate_transfer_queue()
@@ -85,8 +97,13 @@ namespace FS
                                         .add_required_extension(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME)
                                         .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
                                         .add_required_extension(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)
+                                        .add_required_extension(VK_EXT_MESH_SHADER_EXTENSION_NAME)
+                                        .add_required_extension(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME)
+                                        .add_required_extension(VK_KHR_SPIRV_1_4_EXTENSION_NAME)
+                                        .add_required_extension(VK_KHR_MAINTENANCE_4_EXTENSION_NAME)
                                         .prefer_gpu_device_type(vkb::PreferredDeviceType::discrete)
                                         .select();
+
         ASSERT(physicalDeviceReturn.has_value());
         mPhysicalDevice = physicalDeviceReturn.value();
     }
@@ -99,6 +116,14 @@ namespace FS
             Log::Critical("Failed to create device {}", deviceReturn.error().message());
         }
         mDevice = deviceReturn.value();
+
+        vkCmdDrawMeshTasks = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(mDevice, "vkCmdDrawMeshTasksEXT"));
+
+        vkCmdDrawMeshTasksIndirectCount = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectCountEXT>(
+            vkGetDeviceProcAddr(mDevice, "vkCmdDrawMeshTasksIndirectCountEXT"));
+
+        vkCmdDrawMeshTasksIndirect =
+            reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(vkGetDeviceProcAddr(mDevice, "vkCmdDrawMeshTasksIndirectEXT"));
     }
 
     void VulkanContext::CreateQueues()
@@ -118,10 +143,15 @@ namespace FS
 
     void VulkanContext::CreateAllocator()
     {
-        const VmaAllocatorCreateInfo allocatorInfo{.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-                                                   .physicalDevice = mPhysicalDevice,
-                                                   .device = mDevice,
-                                                   .instance = mInstance};
+        VmaVulkanFunctions vulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+                                           .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
+        const VmaAllocatorCreateInfo allocatorInfo{
+            .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice = mPhysicalDevice,
+            .device = mDevice,
+            .pVulkanFunctions = &vulkanFunctions,
+            .instance = mInstance,
+        };
         vmaCreateAllocator(&allocatorInfo, &mAllocator);
     }
 
@@ -176,9 +206,8 @@ namespace FS
                                                    .usage = usage};
         VkImage image;
         VmaAllocation allocation;
-        constexpr VmaAllocationCreateInfo allocCreateInfo{.usage = VMA_MEMORY_USAGE_GPU_ONLY,
-                                                          .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
-        vmaCreateImage(mAllocator, &imageCreateInfo, &allocCreateInfo, &image, &allocation, nullptr);
+        constexpr VmaAllocationCreateInfo allocCreateInfo{.usage = VMA_MEMORY_USAGE_GPU_ONLY};
+        auto result = vmaCreateImage(mAllocator, &imageCreateInfo, &allocCreateInfo, &image, &allocation, nullptr);
         return {image, allocation};
     }
 
@@ -233,12 +262,14 @@ namespace FS
             case BufferType::eIndex:
                 mainUsageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+                requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 break;
             case BufferType::eVertex:
             case BufferType::eGPU:
                 mainUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT;
                 memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+                requiredMemoryFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 break;
             case BufferType::eCPU:
                 mainUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -283,6 +314,14 @@ namespace FS
         void* mappedMemory = nullptr;
         vmaMapMemory(mAllocator, allocation, &mappedMemory);
         return mappedMemory;
+    }
+
+    void VulkanContext::CopyMemoryToAllocation(VmaAllocation allocation,
+                                               const void* data,
+                                               const VkDeviceSize offset,
+                                               const VkDeviceSize size) const
+    {
+        vmaCopyMemoryToAllocation(mAllocator, data, allocation, offset, size);
     }
 
     void VulkanContext::UnmapMemory(VmaAllocation allocation) const { vmaUnmapMemory(mAllocator, allocation); }

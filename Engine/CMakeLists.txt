@@ -11,6 +11,9 @@ target_compile_definitions(Engine PUBLIC
         EngineAssets="${CMAKE_CURRENT_SOURCE_DIR}/Assets/"
         EngineShaders="${CMAKE_CURRENT_SOURCE_DIR}/Shaders/")
 
+add_dependencies(Engine CompileShaders)
+add_dependencies(Engine ConvertTexture)
+
 if (ENABLE_TIDY)
     set_target_properties(Engine PROPERTIES CXX_CLANG_TIDY "clang-tidy")
     add_custom_target(

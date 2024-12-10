@@ -13,6 +13,7 @@ namespace FS
         [[nodiscard]] VkPipelineLayout GetLayout() const { return mPipelineLayout; }
 
 #pragma region Mandatory
+        VulkanPipelineBuilder& AddMeshShader(const std::string& codePath);
         VulkanPipelineBuilder& AddVertexShader(const std::string& codePath);
         VulkanPipelineBuilder& AddFragmentShader(const std::string& codePath);
         VulkanPipelineBuilder& SetTopology(VkPrimitiveTopology topology);

@@ -26,6 +26,13 @@ namespace FS
         mLights.resize(1000);
         mContext->UpdateDescriptorStorageBuffer(mLightBuffer, GetDescriptor(), 0);
         mMappedLightMemory = mContext->MapMemory(mLightBuffer.GetAllocation());
+
+        ktxVulkanDeviceInfo_Construct(&mDeviceInfo,
+                                      mContext->GetPhysicalDevice(),
+                                      mContext->GetDevice(),
+                                      mContext->GetTransferQueue(),
+                                      mTransferCommand->GetCommandPool(),
+                                      nullptr);
     }
 
     VulkanResourceLoader::~VulkanResourceLoader()
@@ -39,110 +46,52 @@ namespace FS
         auto models = gEngine.ResourceManager().GetUploadQueue();
 
         if (models.empty()) return;
-        
+
         Log::Info("Uploading {} models", models.size());
         mTransferCommand->Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-        std::vector<VulkanBuffer> mTexturesStagingBuffers;
-        std::vector<VulkanBuffer> mImageStagingBuffers;
-        std::vector<VulkanBuffer> mModelStagingBuffers;
-        std::vector<VulkanBuffer> mMaterialStagingBuffers;
-        mTexturesStagingBuffers.reserve(models.size());
-        mImageStagingBuffers.reserve(models.size());
-        mModelStagingBuffers.reserve(models.size());
-        mMaterialStagingBuffers.reserve(models.size());
-
         mModels.reserve(mModels.size() + models.size());
-        for (auto& model : std::views::values(models))
+        for (auto& [path, model] : models)
         {
-            std::vector<VulkanImage> images;
-            images.reserve(model.mImages.size());
-            uint32_t totalImageSize = 0;
-            for (const auto& image : model.mImages)
-            {
-                totalImageSize += image.mWidth * image.mHeight * 4;
-            }
-
             std::unordered_map<uint64_t, uint16_t> incrementorMap;
-            mImageStagingBuffers.emplace_back(mContext, BufferType::eStaging, totalImageSize);
-            auto& imageBuffer = mImageStagingBuffers.back();
-            auto mappedImage = mContext->MapMemory(imageBuffer.GetAllocation());
-            uint64_t imageOffset = 0;
-            for (const auto [index, pixels] : std::views::enumerate(model.mImages))
-            {
-                images.emplace_back(
-                    mContext,
-                    ImageType::e2D,
-                    VK_FORMAT_R8G8B8A8_UNORM,
-                    VkExtent2D(pixels.mWidth, pixels.mHeight),
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-                auto& vulkanImage = images.back();
-                const auto imageSize = pixels.mWidth * pixels.mHeight * 4;
 
-                std::memcpy(static_cast<char*>(mappedImage) + imageOffset, pixels.mPixels.data(), imageSize);
-                auto imageBufferCopy =
-                    VulkanUtils::GetBufferImageCopy2(imageOffset, VkOffset2D(), VkExtent2D(pixels.mWidth, pixels.mHeight));
-                mTransferCommand->TransitionImageLayout(vulkanImage, ImageLayout::eUndefined, ImageLayout::eTransferDst);
-                mTransferCommand->CopyBufferToImage(imageBuffer, vulkanImage, imageBufferCopy);
-                mTransferCommand->TransitionImageLayout(vulkanImage, ImageLayout::eTransferDst, ImageLayout::eShaderReadOnly);
+            std::vector<VulkanImage> images;
+            images.reserve(model.mImageURIs.size());
+            for (const auto& [index, image] : std::views::enumerate(model.mImageURIs))
+            {
+                auto filePath = std::filesystem::path(path).parent_path().string();
+                auto texturePath = filePath.append("/").append(image);
+                images.emplace_back(mContext, texturePath, mDeviceInfo);
+                auto& vulkanImage = images.back();
+
                 mContext->UpdateDescriptorImage(mLinearSampler, vulkanImage.GetView(), GetDescriptor(), mIncrementor);
                 incrementorMap[index] = mIncrementor;
                 mIncrementor++;
-                imageOffset += imageSize;
             }
-            mContext->UnmapMemory(imageBuffer.GetAllocation());
 
-            auto totalVerticesSize = static_cast<uint32_t>(model.mVertices.size() * sizeof(Vertex));
-            auto totalIndicesSize = static_cast<uint32_t>(model.mIndices.size() * sizeof(uint32_t));
-            auto totalModelSize = totalVerticesSize + totalIndicesSize;
-            mModelStagingBuffers.emplace_back(mContext, BufferType::eStaging, totalModelSize);
-            auto& modelBuffer = mModelStagingBuffers.back();
-            const auto mappedModel = mContext->MapMemory(modelBuffer.GetAllocation());
-            std::memcpy(mappedModel, model.mVertices.data(), sizeof(Vertex) * model.mVertices.size());
-            std::memcpy(static_cast<char*>(mappedModel) + totalVerticesSize, model.mIndices.data(), totalIndicesSize);
-            mContext->UnmapMemory(modelBuffer.GetAllocation());
+            auto verticesSize = static_cast<uint32_t>(model.mVertices.size() * sizeof(Vertex));
+            auto indicesSize = static_cast<uint32_t>(model.mIndices.size() * sizeof(uint32_t));
+            auto materialSize = static_cast<uint32_t>(model.mMaterials.size() * sizeof(Material));
+            auto textureSize = static_cast<uint32_t>(model.mTextures.size() * sizeof(Texture));
 
             mModels.emplace_back(mContext,
-                                 totalVerticesSize,
-                                 totalIndicesSize,
-                                 std::move(model.mMeshes),
-                                 std::move(model.mNodes),
-                                 std::move(model.mRootNodes),
-                                 std::move(model.mMaterials),
-                                 std::move(model.mTextures),
-                                 std::move(model.mSamplers),
-                                 std::move(images));
+                                 verticesSize,
+                                 indicesSize,
+                                 materialSize,
+                                 textureSize,
+                                 std::move(images),
+                                 model.mRootNodes,
+                                 model.mNodes,
+                                 model.mMeshes);
             auto& vulkanModel = mModels.back();
 
-            auto vertexBufferCopy = VulkanUtils::GetBufferCopy2(totalVerticesSize, 0, 0);
-            mTransferCommand->CopyBufferToBuffer(modelBuffer, vulkanModel.mVertexBuffer, vertexBufferCopy);
-            auto indexBufferCopy = VulkanUtils::GetBufferCopy2(totalIndicesSize, totalVerticesSize, 0);
-            mTransferCommand->CopyBufferToBuffer(modelBuffer, vulkanModel.mIndexBuffer, indexBufferCopy);
-
-
-            auto totalTextureSize = sizeof(Texture) * vulkanModel.mTextures.size();
-            mTexturesStagingBuffers.emplace_back(mContext,
-                                                 BufferType::eStaging,
-                                                 static_cast<uint32_t>(totalTextureSize));
-            auto& textureStagingBuffer = mTexturesStagingBuffers.back();
-            auto mappedTexture = mContext->MapMemory(textureStagingBuffer.GetAllocation());
-            std::memcpy(mappedTexture, vulkanModel.mTextures.data(), totalTextureSize);
-            for (auto& [mSamplerIndex, mImageIndex] : model.mTextures)
-            {
-                mImageIndex = incrementorMap[mImageIndex];
-            }
-            mContext->UnmapMemory(textureStagingBuffer.GetAllocation());
-            auto textureBufferCopy = VulkanUtils::GetBufferCopy2(totalTextureSize,0, 0);
-            mTransferCommand->CopyBufferToBuffer(textureStagingBuffer, vulkanModel.mTextureBuffer, textureBufferCopy);
-
-            uint32_t materialSize = static_cast<uint32_t>(vulkanModel.mMaterials.size() * sizeof(Material));
-            mMaterialStagingBuffers.emplace_back(mContext, BufferType::eStaging, materialSize);
-            auto& materialStagingBuffer = mMaterialStagingBuffers.back();
-            const auto mappedMaterial = mContext->MapMemory(materialStagingBuffer.GetAllocation());
-            std::memcpy(mappedMaterial, vulkanModel.mMaterials.data(), materialSize);
-            mContext->UnmapMemory(materialStagingBuffer.GetAllocation());
-            auto materialBufferCopy = VulkanUtils::GetBufferCopy2(materialSize, 0, 0);
-            mTransferCommand->CopyBufferToBuffer(materialStagingBuffer, vulkanModel.mMaterialBuffer, materialBufferCopy);
+            mContext->CopyMemoryToAllocation(vulkanModel.mVertexBuffer.GetAllocation(), model.mVertices.data(), 0, verticesSize);
+            mContext->CopyMemoryToAllocation(vulkanModel.mIndexBuffer.GetAllocation(), model.mIndices.data(), 0, indicesSize);
+            mContext->CopyMemoryToAllocation(vulkanModel.mTextureBuffer.GetAllocation(), model.mTextures.data(), 0, textureSize);
+            mContext->CopyMemoryToAllocation(vulkanModel.mMaterialBuffer.GetAllocation(),
+                                             model.mMaterials.data(),
+                                             0,
+                                             materialSize);
         }
 
         mTransferCommand->End();

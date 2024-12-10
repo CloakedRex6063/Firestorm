@@ -3,9 +3,12 @@
 
 namespace FS
 {
-    void VulkanQueue::SubmitQueue(VkCommandBuffer commandBuffer, VkSemaphore waitSemaphore,
-                            const VkPipelineStageFlags2 waitStageMask, VkSemaphore signalSemaphore,
-                            const VkPipelineStageFlags2 signalStageMask, VkFence fence) const
+    void VulkanQueue::SubmitQueue(VkCommandBuffer commandBuffer,
+                                  VkSemaphore waitSemaphore,
+                                  const VkPipelineStageFlags2 waitStageMask,
+                                  VkSemaphore signalSemaphore,
+                                  const VkPipelineStageFlags2 signalStageMask,
+                                  VkFence fence) const
     {
         const auto commandSubmitInfo = VulkanUtils::GetCommandBufferSubmitInfo(commandBuffer);
         const auto waitSubmitInfo = VulkanUtils::GetSemaphoreSubmitInfo(waitSemaphore, waitStageMask);
@@ -18,6 +21,20 @@ namespace FS
             .pCommandBufferInfos = &commandSubmitInfo,
             .signalSemaphoreInfoCount = signalSemaphore ? 1u : 0u,
             .pSignalSemaphoreInfos = &signalSubmitInfo,
+        };
+        vkQueueSubmit2(mQueue, 1, &submitInfo, fence);
+    }
+    void VulkanQueue::SubmitQueueForHost(VkCommandBuffer commandBuffer, VkFence fence) const
+    {
+        const auto commandSubmitInfo = VulkanUtils::GetCommandBufferSubmitInfo(commandBuffer);
+        const VkSubmitInfo2 submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .waitSemaphoreInfoCount = 0u,
+            .pWaitSemaphoreInfos = nullptr,
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &commandSubmitInfo,
+            .signalSemaphoreInfoCount = 0u,
+            .pSignalSemaphoreInfos = nullptr,
         };
         vkQueueSubmit2(mQueue, 1, &submitInfo, fence);
     }

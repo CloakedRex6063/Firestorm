@@ -11,6 +11,7 @@ namespace FS
     class ResourceManager
     {
     public:
+        ResourceManager();
         std::optional<ResourceHandle> LoadModel(const std::string& modelPath);
         std::unordered_map<std::string, Model> GetUploadQueue() { return std::move(mUploadQueue); }
 
@@ -21,11 +22,10 @@ namespace FS
         static void LoadGltfMeshes(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfMaterials(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfTextures(Model& model, const fastgltf::Asset& asset);
-        static void LoadGltfSamplers(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfImages(Model& model, const fastgltf::Asset& asset);
-        static void LoadGltfLights(Model& model, const fastgltf::Asset& asset);
 
         std::unordered_map<std::string, Model> mUploadQueue;
         std::vector<ResourceHandle> mHandles;
+        fastgltf::Parser mParser;
     };
 }  // namespace FS

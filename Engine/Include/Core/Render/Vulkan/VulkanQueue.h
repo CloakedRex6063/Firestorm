@@ -17,6 +17,7 @@ namespace FS
 
         void SubmitQueue(VkCommandBuffer commandBuffer, VkSemaphore waitSemaphore, VkPipelineStageFlags2 waitStageMask,
                          VkSemaphore signalSemaphore, VkPipelineStageFlags2 signalStageMask, VkFence fence) const;
+        void SubmitQueueForHost(VkCommandBuffer commandBuffer, VkFence fence) const;
 
     private:
         VkQueue mQueue;

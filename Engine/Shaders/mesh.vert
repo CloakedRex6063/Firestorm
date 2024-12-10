@@ -1,7 +1,6 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
 
-layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outPos;
@@ -14,7 +13,6 @@ struct Vertex
     float uvX;
     vec3 normal;
     float uvY;
-    vec4 color;
 };
 
 layout(buffer_reference, std430) readonly buffer VertexBuffer { Vertex vertices[]; };
@@ -48,7 +46,7 @@ layout(push_constant) uniform Constant
 }
 pushConstant;
 
-layout(binding = 0) uniform UBO
+layout(binding = 1) uniform UBO
 {
     vec3 camPos;
     uint lightCount;
@@ -63,9 +61,8 @@ void main()
     gl_Position = projection * view * pushConstant.model * vec4(v.position, 1.0);
     outUV = vec2(v.uvX, v.uvY);
     outPos = vec3(pushConstant.model * vec4(v.position, 1.0));
+    outNormal = normalize((pushConstant.model * vec4(v.normal, 0.0)).xyz);
     outCamPos = vec3(camPos);
-    outColor = v.color;
     outLightCount = lightCount;
-    // TODO: calculate normals on cpu as inverse is an expensive operation
-    outNormal = mat3(transpose(inverse(pushConstant.model))) * v.normal;
+
 }
