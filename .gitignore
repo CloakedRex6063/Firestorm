@@ -37,3 +37,4 @@
 .vs/
 .idea/
 Build/
+*.ktx2
