@@ -14,6 +14,7 @@ BreakBeforeBraces: Allman
 BinPackArguments: false
 BinPackParameters: false
 AlignOperands: AlignAfterOperator
+PointerAlignment: Left
 BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: False
 PenaltyBreakAssignment: 10

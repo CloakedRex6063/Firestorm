@@ -30,7 +30,8 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.frag"
         "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.vert"
         "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.comp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.glsl")
+        "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.glsl"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/*.mesh")
 
 find_program(GLSL_VALIDATOR glslc REQUIRED)
 message(STATUS "Gathering shaders")
@@ -38,7 +39,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
     get_filename_component(FILE_NAME ${GLSL} NAME)
     get_filename_component(FILE_EXT ${GLSL} EXT)
     set(SPIRV "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Shaders/${FILE_NAME}.spv")
-    if(${FILE_EXT} STREQUAL ".glsl")
+    if(${FILE_EXT} STREQUAL ".mesh")
         set(SHADER_STAGE "-fshader-stage=mesh")
     else ()
         set(SHADER_STAGE "")
@@ -69,7 +70,7 @@ foreach (Texture ${TEXTURE_SOURCE_FILES})
     message(STATUS ${KTX})
     add_custom_command(
             OUTPUT ${KTX}
-            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Compression/img2ktx.exe -o ${KTX} -f BC7 ${Texture}
+            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/Compression/img2ktx.exe -o ${KTX} -f BC1 ${Texture}
             DEPENDS ${Texture})
     list(APPEND KTX_FILES ${KTX})
 endforeach ()

@@ -20,6 +20,7 @@ namespace FS
         std::optional<ResourceHandle> LoadGltf(const std::filesystem::path& modelPath);
         static void LoadGltfNodes(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfMeshes(Model& model, const fastgltf::Asset& asset);
+        static void LoadGltfTangents(Model& model);
         static void LoadGltfMaterials(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfTextures(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfImages(Model& model, const fastgltf::Asset& asset);

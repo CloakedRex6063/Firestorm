@@ -133,18 +133,20 @@ namespace FS
         
         /// <summary>
         /// An enum listing all supported mouse buttons.
-        /// This uses the same numbering as in GLFW input, so a GLFW-based implementation can use it directly without any
+        /// This uses the same numbering as in SDL input, so a SDL-based implementation can use it directly without any
         /// further mapping.
         /// </summary>
         enum class MouseButton
         {
-            Left = 0,
-            Right = 1,
-            Middle = 2
+            Left = 1,
+            Middle = 2,
+            Right = 3,
+            Thumb1 = 4,
+            Thumb2 = 5, 
         };
 
         /// Checks and returns whether a given mouse button is being held down in the current frame.
-        bool GetMouseButton(MouseButton button) { return mButtonsDown[button]; }
+        bool GetMouseButton(const MouseButton button) { return mButtonsDown[button]; }
 
         /// Gets the screen position of the mouse in pixel coordinates, relative to the top-left corner of the screen.
         glm::vec2 GetMousePosition() const { return mMousePosition; }

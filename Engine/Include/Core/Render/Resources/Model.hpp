@@ -9,11 +9,15 @@ namespace FS
         float mUVx{};
         glm::vec3 mNormal{};
         float mUVy{};
+        glm::vec3 mTangent{};
+        float mPadding0{};
+        glm::vec3 mBiTangent{};
+        float mPadding1{};
 
         template <typename Archive>
         void serialize(Archive& archive)
         {
-            archive(mPosition, mUVx, mNormal, mUVy);
+            archive(mPosition, mUVx, mNormal, mUVy, mTangent, mPadding0, mBiTangent, mPadding1);
         }
     };
 
@@ -34,34 +38,39 @@ namespace FS
     struct Material
     {
         glm::vec4 mBaseColorFactor{};
-        float mMetallicFactor{};
-        float mRoughnessFactor{};
         int mBaseTextureIndex{};
-        int mNormalTextureIndex{};
         int mRoughnessTextureIndex{};
         int mOcclusionTextureIndex{};
-        float mAO{};
         int mEmissiveTextureIndex{};
         glm::vec3 mEmissiveFactor{};
-        AlphaMode mAlphaMode{};
-        bool mDoubleSided{};
+        float mMetallicFactor{};
+        float mRoughnessFactor{};
+        float mAO{};
         float mAlphaCutoff{};
         float mIOR{};
+        int normalTextureIndex{};
+        int padding0{};
+        int padding1{};
+        int padding2{};
+
+        // bool mDoubleSided{};             // 1 byte
+        // glm::vec3 mPadding0{};              // Padding to align to 16 bytes
 
         template <typename Archive>
         void serialize(Archive& archive)
         {
             archive(mBaseColorFactor,
-                    mMetallicFactor,
-                    mRoughnessFactor,
                     mBaseTextureIndex,
                     mRoughnessTextureIndex,
-                    mAO,
+                    mOcclusionTextureIndex,
                     mEmissiveTextureIndex,
                     mEmissiveFactor,
-                    mAlphaMode,
+                    mMetallicFactor,
+                    mRoughnessFactor,
+                    mAO,
                     mAlphaCutoff,
-                    mIOR);
+                    mIOR,
+                    normalTextureIndex);
         }
     };
 
@@ -81,13 +90,12 @@ namespace FS
 
     struct Texture
     {
-        int mSamplerIndex{};
         int mImageIndex{};
 
         template <typename Archive>
         void serialize(Archive& archive)
         {
-            archive(mSamplerIndex, mImageIndex);
+            archive(mImageIndex);
         }
     };
 

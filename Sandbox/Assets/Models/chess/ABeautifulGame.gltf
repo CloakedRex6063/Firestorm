@@ -1220,167 +1220,167 @@
         {
             "mimeType" : "image/jpeg",
             "name" : "King_black_normal",
-            "uri" : "King_black_normal.jpg"
+            "uri" : "King_black_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "King_black_ORM",
-            "uri" : "King_black_ORM.jpg"
+            "uri" : "King_black_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "king_black_base_color",
-            "uri" : "king_black_base_color.jpg"
+            "uri" : "king_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "King_white_normal",
-            "uri" : "King_white_normal.jpg"
+            "uri" : "King_white_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "King_white_ORM",
-            "uri" : "King_white_ORM.jpg"
+            "uri" : "King_white_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "king_white_base_color",
-            "uri" : "king_white_base_color.jpg"
+            "uri" : "king_white_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Queen_black_normal",
-            "uri" : "Queen_black_normal.jpg"
+            "uri" : "Queen_black_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Queen_black_ORM",
-            "uri" : "Queen_black_ORM.jpg"
+            "uri" : "Queen_black_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "queen_black_base_color",
-            "uri" : "queen_black_base_color.jpg"
+            "uri" : "queen_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Queen_white_normal",
-            "uri" : "Queen_white_normal.jpg"
+            "uri" : "Queen_white_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Queen_white_ORM",
-            "uri" : "Queen_white_ORM.jpg"
+            "uri" : "Queen_white_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "queen_white_base_color",
-            "uri" : "queen_white_base_color.jpg"
+            "uri" : "queen_white_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "chessboard_normal",
-            "uri" : "chessboard_normal.jpg"
+            "uri" : "chessboard_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Chessboard_ORM",
-            "uri" : "Chessboard_ORM.jpg"
+            "uri" : "Chessboard_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "chessboard_base_color",
-            "uri" : "chessboard_base_color.jpg"
+            "uri" : "chessboard_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Pawn_normal",
-            "uri" : "Pawn_normal.jpg"
+            "uri" : "Pawn_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Pawn_ORM",
-            "uri" : "Pawn_ORM.jpg"
+            "uri" : "Pawn_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "pawn_white_base_color",
-            "uri" : "pawn_white_base_color.jpg"
+            "uri" : "pawn_white_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "pawn_black_base_color",
-            "uri" : "pawn_black_base_color.jpg"
+            "uri" : "pawn_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Castle_normal",
-            "uri" : "Castle_normal.jpg"
+            "uri" : "Castle_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Castle_ORM",
-            "uri" : "Castle_ORM.jpg"
+            "uri" : "Castle_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "castle_black_base_color",
-            "uri" : "castle_black_base_color.jpg"
+            "uri" : "castle_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "castle_white_base_color",
-            "uri" : "castle_white_base_color.jpg"
+            "uri" : "castle_white_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Knight_normal",
-            "uri" : "Knight_normal.jpg"
+            "uri" : "Knight_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Knight_ORM",
-            "uri" : "Knight_ORM.jpg"
+            "uri" : "Knight_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "knight_black_base_color",
-            "uri" : "knight_black_base_color.jpg"
+            "uri" : "knight_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "knight_white_base_color",
-            "uri" : "knight_white_base_color.jpg"
+            "uri" : "knight_white_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "bishop_black_normal",
-            "uri" : "bishop_black_normal.jpg"
+            "uri" : "bishop_black_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Bishop_black_ORM",
-            "uri" : "Bishop_black_ORM.jpg"
+            "uri" : "Bishop_black_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "bishop_black_base_color",
-            "uri" : "bishop_black_base_color.jpg"
+            "uri" : "bishop_black_base_color.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "bishop_white_normal",
-            "uri" : "bishop_white_normal.jpg"
+            "uri" : "bishop_white_normal.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "Bishop_white_ORM",
-            "uri" : "Bishop_white_ORM.jpg"
+            "uri" : "Bishop_white_ORM.ktx2"
         },
         {
             "mimeType" : "image/jpeg",
             "name" : "bishop_white_base_color",
-            "uri" : "bishop_white_base_color.jpg"
+            "uri" : "bishop_white_base_color.ktx2"
         }
     ],
     "accessors" : [

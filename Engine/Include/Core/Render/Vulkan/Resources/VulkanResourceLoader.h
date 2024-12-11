@@ -33,7 +33,7 @@ namespace FS
         VulkanDescriptor mDescriptor;
         VkSampler mLinearSampler{};
 
-        ktxVulkanDeviceInfo mDeviceInfo;
+        ktxVulkanDeviceInfo mDeviceInfo{};
         
         uint16_t mIncrementor = 0;
     };

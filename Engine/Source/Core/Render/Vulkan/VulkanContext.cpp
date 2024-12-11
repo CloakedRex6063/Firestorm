@@ -55,7 +55,10 @@ namespace FS
     void VulkanContext::CreateInstance()
     {
         vkb::InstanceBuilder instanceBuilder;
-        instanceBuilder.set_app_name("Sandbox").set_engine_name("Firestorm").require_api_version(VK_API_VERSION_1_3);
+        instanceBuilder.set_app_name("Sandbox")
+            .set_engine_name("Firestorm")
+            .require_api_version(VK_API_VERSION_1_3)
+            .enable_layer("VK_LAYER_LUNARG_monitor");
 #ifdef FS_DEBUG
         instanceBuilder.set_debug_callback(DebugCallback).request_validation_layers();
 #endif
@@ -82,11 +85,9 @@ namespace FS
                                                     .synchronization2 = true,
                                                     .dynamicRendering = true,
                                                     .maintenance4 = true};
-        VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
-            .taskShader = true,
-            .meshShader = true
-        };
+        VkPhysicalDeviceMeshShaderFeaturesEXT meshFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+                                                           .taskShader = true,
+                                                           .meshShader = true};
         auto physicalDeviceReturn = selector.set_minimum_version(1, 3)
                                         .set_surface(mSurface)
                                         .add_required_extension_features(meshFeatures)
@@ -316,10 +317,10 @@ namespace FS
         return mappedMemory;
     }
 
-    void VulkanContext::CopyMemoryToAllocation(VmaAllocation allocation,
-                                               const void* data,
-                                               const VkDeviceSize offset,
-                                               const VkDeviceSize size) const
+    void VulkanContext::CopyToDeviceBuffer(VmaAllocation allocation,
+                                           const void* data,
+                                           const VkDeviceSize offset,
+                                           const VkDeviceSize size) const
     {
         vmaCopyMemoryToAllocation(mAllocator, data, allocation, offset, size);
     }
@@ -329,22 +330,21 @@ namespace FS
     VkDescriptorPool VulkanContext::CreateDescriptorPool(const uint32_t maxSets,
                                                          const ArrayProxy<VkDescriptorPoolSize> poolSizes) const
     {
-        const VkDescriptorPoolCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = maxSets,
-            .poolSizeCount = poolSizes.size(),
-            .pPoolSizes = poolSizes.data()};
+        const VkDescriptorPoolCreateInfo createInfo = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                                       .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT |
+                                                                VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                                                       .maxSets = maxSets,
+                                                       .poolSizeCount = poolSizes.size(),
+                                                       .pPoolSizes = poolSizes.data()};
         VkDescriptorPool descriptorPool;
         vkCreateDescriptorPool(mDevice, &createInfo, nullptr, &descriptorPool);
         return descriptorPool;
     }
 
-    VkDescriptorSetLayout VulkanContext::CreateDescriptorSetLayout(
-        const ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const
+    VkDescriptorSetLayout VulkanContext::CreateDescriptorSetLayout(const ArrayProxy<VkDescriptorSetLayoutBinding> bindings) const
     {
-        constexpr VkDescriptorBindingFlags flags =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        constexpr VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                                   VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
         std::vector bindingsFlags(bindings.size(), flags);
         VkDescriptorSetLayoutBindingFlagsCreateInfo bindingsInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,

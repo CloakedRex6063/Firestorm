@@ -4,6 +4,7 @@
 #include "VulkanSync.h"
 #include "ktxvulkan.h"
 #include "Core/Render/Renderer.h"
+#include "Resources/VulkanModel.h"
 
 namespace FS
 {
@@ -35,7 +36,8 @@ namespace FS
         [[nodiscard]] FrameData& GetFrameData() const { return *mFrameData[mFrameIndex]; }
 
         void RenderGeometry(const VulkanCommand& command);
-        void RenderMesh(const VulkanCommand& command);
+        void RenderNodes(const VulkanCommand& command, VulkanModel& model, Node& root, const glm::mat4& parentTransform);
+        void RenderMesh(const VulkanCommand& command) const;
 
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanSwapchain> mSwapchain;
@@ -65,6 +67,7 @@ namespace FS
         VkDescriptorPool mImGuiDescriptorPool;
 
         std::unique_ptr<VulkanImage> mDepthImage;
+        std::unique_ptr<VulkanImage> mRenderImage;
         std::unique_ptr<VulkanResourceLoader> mResourceLoader;
     };
 }  // namespace FS

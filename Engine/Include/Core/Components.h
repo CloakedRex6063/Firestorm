@@ -47,7 +47,7 @@ namespace FS::Component
         CameraType mType = CameraType::ePerspective;
         float mNear = 0.01f;
         float mFar = 1000.f;
-        float mFov = 90.f;
+        float mFov = 60.f;
         glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
         glm::mat4 mViewMatrix = glm::mat4(1.0f);
     };

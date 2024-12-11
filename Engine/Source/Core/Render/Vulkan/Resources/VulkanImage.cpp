@@ -16,7 +16,7 @@ namespace FS
                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         ktxTexture_Destroy(kTexture);
         mImageView =
-            mContext->CreateImageView(mTexture.image, ImageType::e2D, VK_FORMAT_BC7_UNORM_BLOCK, VK_IMAGE_ASPECT_COLOR_BIT);
+            mContext->CreateImageView(mTexture.image, ImageType::e2D, VK_FORMAT_BC1_RGB_UNORM_BLOCK, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
     VulkanImage::VulkanImage(const std::shared_ptr<VulkanContext>& context,

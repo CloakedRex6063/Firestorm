@@ -56,6 +56,8 @@ namespace FS
         void CopyBufferToImage(VkBuffer srcBuffer,
                                VkImage dstImage,
                                const ArrayProxy<VkBufferImageCopy2>& bufferImageCopies) const;
+        void CopyImageToImage(VkImage srcImage, VkImage dstImage, const VkImageCopy2& copyRegion) const;
+        void BlitImage(VkImage srcImage, VkImage dstImage, VkImageBlit2 blit, VkFilter filter = VK_FILTER_LINEAR) const;
 
     private:
         std::shared_ptr<VulkanContext> mDevice;

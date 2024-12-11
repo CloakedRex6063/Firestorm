@@ -8,7 +8,7 @@ namespace FS
         eOrthographic,
     };
 
-    enum class AlphaMode : uint8_t
+    enum class AlphaMode
     {
         eOpaque,
         eTransparent

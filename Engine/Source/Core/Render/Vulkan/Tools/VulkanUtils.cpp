@@ -31,7 +31,8 @@ namespace FS
         return subresourceLayers;
     };
 
-    VkPipelineShaderStageCreateInfo VulkanUtils::CreateShaderStageInfo(const VkShaderStageFlagBits stage, VkShaderModule shaderModule)
+    VkPipelineShaderStageCreateInfo VulkanUtils::CreateShaderStageInfo(const VkShaderStageFlagBits stage,
+                                                                       VkShaderModule shaderModule)
     {
         const VkPipelineShaderStageCreateInfo shaderStageInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                                  .stage = stage,
@@ -50,8 +51,8 @@ namespace FS
     }
 
     VkBufferImageCopy2 VulkanUtils::GetBufferImageCopy2(const uint64_t bufferOffset,
-                                                  const VkOffset2D imageOffset,
-                                                  const VkExtent2D extent)
+                                                        const VkOffset2D imageOffset,
+                                                        const VkExtent2D extent)
     {
         const VkBufferImageCopy2 copy2 = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
@@ -62,7 +63,32 @@ namespace FS
         };
         return copy2;
     }
-    
+
+    VkImageCopy2 VulkanUtils::GetImageCopy2(const VkExtent2D extent, const VkOffset2D srcOffset, const VkOffset2D dstOffset)
+    {
+        const VkImageCopy2 copy2 = {.sType = VK_STRUCTURE_TYPE_IMAGE_COPY_2,
+                                    .srcSubresource = GetSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+                                    .srcOffset = VkOffset3D(srcOffset.x, srcOffset.y, 1.0),
+                                    .dstSubresource = GetSubresourceLayers(VK_IMAGE_ASPECT_COLOR_BIT),
+                                    .dstOffset = VkOffset3D(dstOffset.x, dstOffset.y, 1.0),
+                                    .extent = VkExtent3D(extent.width, extent.height, 1)};
+        return copy2;
+    }
+
+    VkImageBlit2 VulkanUtils::GetImageBlit2(const VkImageAspectFlags aspectFlags,
+                                            const std::array<VkOffset3D, 2>& srcOffsets,
+                                            const std::array<VkOffset3D, 2>& dstOffsets)
+    {
+        const VkImageBlit2 blit2 = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
+            .srcSubresource = GetSubresourceLayers(aspectFlags),
+            .srcOffsets = {srcOffsets[0], srcOffsets[1]},
+            .dstSubresource = GetSubresourceLayers(aspectFlags),
+            .dstOffsets = {dstOffsets[0], dstOffsets[1]}
+        };
+        return blit2;
+    }
+
     VkImageLayout VulkanUtils::GetImageLayout(const ImageLayout layout)
     {
         switch (layout)

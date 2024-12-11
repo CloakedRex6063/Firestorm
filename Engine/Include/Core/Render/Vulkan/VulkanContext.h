@@ -50,7 +50,7 @@ namespace FS
         [[nodiscard]] VmaAllocationInfo GetAllocationInfo(VmaAllocation allocation) const;
 
         [[nodiscard]] void* MapMemory(VmaAllocation allocation) const;
-        void CopyMemoryToAllocation(VmaAllocation allocation, const void* data, VkDeviceSize offset, VkDeviceSize size) const;
+        void CopyToDeviceBuffer(VmaAllocation allocation, const void* data, VkDeviceSize offset, VkDeviceSize size) const;
         void UnmapMemory(VmaAllocation allocation) const;
 
         [[nodiscard]] VkDescriptorPool CreateDescriptorPool(uint32_t maxSets, ArrayProxy<VkDescriptorPoolSize> poolSizes) const;

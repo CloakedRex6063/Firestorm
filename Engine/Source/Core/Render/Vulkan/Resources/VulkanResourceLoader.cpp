@@ -65,8 +65,12 @@ namespace FS
                 auto& vulkanImage = images.back();
 
                 mContext->UpdateDescriptorImage(mLinearSampler, vulkanImage.GetView(), GetDescriptor(), mIncrementor);
-                incrementorMap[index] = mIncrementor;
-                mIncrementor++;
+                incrementorMap[index] = mIncrementor++;
+            }
+
+            for (auto& [mImageIndex] : model.mTextures)
+            {
+                mImageIndex = incrementorMap[mImageIndex];
             }
 
             auto verticesSize = static_cast<uint32_t>(model.mVertices.size() * sizeof(Vertex));
@@ -85,18 +89,15 @@ namespace FS
                                  model.mMeshes);
             auto& vulkanModel = mModels.back();
 
-            mContext->CopyMemoryToAllocation(vulkanModel.mVertexBuffer.GetAllocation(), model.mVertices.data(), 0, verticesSize);
-            mContext->CopyMemoryToAllocation(vulkanModel.mIndexBuffer.GetAllocation(), model.mIndices.data(), 0, indicesSize);
-            mContext->CopyMemoryToAllocation(vulkanModel.mTextureBuffer.GetAllocation(), model.mTextures.data(), 0, textureSize);
-            mContext->CopyMemoryToAllocation(vulkanModel.mMaterialBuffer.GetAllocation(),
-                                             model.mMaterials.data(),
-                                             0,
-                                             materialSize);
+            mContext->CopyToDeviceBuffer(vulkanModel.mVertexBuffer.GetAllocation(), model.mVertices.data(), 0, verticesSize);
+            mContext->CopyToDeviceBuffer(vulkanModel.mIndexBuffer.GetAllocation(), model.mIndices.data(), 0, indicesSize);
+            mContext->CopyToDeviceBuffer(vulkanModel.mTextureBuffer.GetAllocation(), model.mTextures.data(), 0, textureSize);
+            mContext->CopyToDeviceBuffer(vulkanModel.mMaterialBuffer.GetAllocation(), model.mMaterials.data(), 0, materialSize);
         }
 
         mTransferCommand->End();
 
-        mContext->GetTransferQueue().SubmitQueue(*mTransferCommand, nullptr, 0, nullptr, 0, mFence);
+        mContext->GetTransferQueue().SubmitQueueForHost(*mTransferCommand, mFence);
         mContext->WaitForFence(mFence, std::numeric_limits<uint64_t>::max());
         mContext->ResetFence(mFence);
     }

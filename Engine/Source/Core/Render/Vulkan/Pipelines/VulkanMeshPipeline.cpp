@@ -10,8 +10,8 @@ namespace FS
                                                    const glm::uvec2& size)
         : mPipelineBuilder(context)
     {
-        const auto meshShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "mesh.glsl.spv");
-        const auto fragmentShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "meshShading.frag.spv");
+        const auto meshShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "mesh.mesh.spv");
+        const auto fragmentShader = gEngine.FileIO().GetPath(Directory::eEngineShaders, "mesh.frag.spv");
 
         VkPushConstantRange pushConstantRange = {.stageFlags = VK_SHADER_STAGE_ALL, .size = sizeof(ModelPushConstant)};
 

@@ -12,10 +12,10 @@ namespace FS
     ResourceManager::ResourceManager()
     {
         constexpr auto extensions = fastgltf::Extensions::KHR_materials_transmission |
-                            fastgltf::Extensions::KHR_materials_volume;
+                                    fastgltf::Extensions::KHR_materials_volume;
         mParser = fastgltf::Parser(extensions);
     }
-    
+
     std::optional<ResourceHandle> ResourceManager::LoadModel(const std::string& modelPath)
     {
         std::optional<ResourceHandle> resource = ResourceManager::LoadModelBinary(modelPath);
@@ -98,7 +98,7 @@ namespace FS
         LoadGltfTextures(model, asset);
         LoadGltfImages(model, asset);
 
-        Serializer::Serialize("model.bin", model);
+        //Serializer::Serialize("model.bin", model);
 
         mUploadQueue[modelPath.string()] = model;
         return ResourceHandle();
@@ -129,26 +129,32 @@ namespace FS
         {
             auto& primitive = mesh.primitives[0];
             auto& indexAccessor = asset.accessors[primitive.indicesAccessor.value()];
-            const auto oldIndicesSize = static_cast<uint32_t>(model.mIndices.size());
-            model.mIndices.reserve(oldIndicesSize + indexAccessor.count);
 
-            std::vector<uint16_t> shortIndices;
+            const auto oldVerticesSize = static_cast<uint32_t>(model.mVertices.size());
+            const auto oldIndicesSize = static_cast<uint32_t>(model.mIndices.size());
+
+            model.mIndices.resize(oldIndicesSize + indexAccessor.count);
             switch (indexAccessor.componentType)
             {
                 case fastgltf::ComponentType::UnsignedShort:
-                    shortIndices.resize(indexAccessor.count);
+                {
+                    std::vector<uint16_t> shortIndices(indexAccessor.count);
                     fastgltf::copyFromAccessor<uint16_t>(asset, indexAccessor, shortIndices.data());
-                    std::ranges::copy(shortIndices.begin(), shortIndices.end(), std::back_inserter(model.mIndices));
+                    std::ranges::copy(shortIndices, model.mIndices.begin() + oldIndicesSize);
                     break;
+                }
                 case fastgltf::ComponentType::UnsignedInt:
+                {
                     fastgltf::copyFromAccessor<uint32_t>(asset, indexAccessor, model.mIndices.data() + oldIndicesSize);
+                    break;
+                }
                 default:
                     break;
             }
 
             assert(primitive.findAttribute("POSITION"));
             auto& positionAccessor = asset.accessors[primitive.findAttribute("POSITION")->accessorIndex];
-            const auto oldVerticesSize = static_cast<uint32_t>(model.mVertices.size());
+
             model.mVertices.resize(oldVerticesSize + positionAccessor.count);
             fastgltf::iterateAccessorWithIndex<glm::vec3>(asset,
                                                           positionAccessor,
@@ -165,7 +171,7 @@ namespace FS
                                                           {
                                                               model.mVertices[oldVerticesSize + index].mNormal = normal;
                                                           });
-            
+
             assert(primitive.findAttribute("TEXCOORD_0"));
             auto& uvAccessor = asset.accessors[primitive.findAttribute("TEXCOORD_0")->accessorIndex];
             fastgltf::iterateAccessorWithIndex<glm::vec2>(asset,
@@ -181,6 +187,60 @@ namespace FS
                                        oldIndicesSize,
                                        static_cast<uint32_t>(indexAccessor.count),
                                        materialIndex);
+        }
+    }
+
+    // From https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+    void ResourceManager::LoadGltfTangents(Model& model)
+    {
+        auto& vertices = model.mVertices;
+        auto& indices = model.mIndices;
+        for (int i = 0; i < indices.size(); ++i)
+        {
+            unsigned int i0 = indices[i];
+            unsigned int i1 = indices[i + 1];
+            unsigned int i2 = indices[i + 2];
+            
+            Vertex& v0 = vertices[i0];
+            Vertex& v1 = vertices[i1];
+            Vertex& v2 = vertices[i2];
+            
+            glm::vec3 p0 = v0.mPosition;
+            glm::vec3 p1 = v1.mPosition;
+            glm::vec3 p2 = v2.mPosition;
+            
+            glm::vec2 uv0 = glm::vec2(v0.mUVx, v0.mUVy);
+            glm::vec2 uv1 = glm::vec2(v1.mUVx, v1.mUVy);
+            glm::vec2 uv2 = glm::vec2(v2.mUVx, v2.mUVy);
+            
+            glm::vec3 edge1 = p1 - p0;
+            glm::vec3 edge2 = p2 - p0;
+            
+            glm::vec2 deltaUV1 = uv1 - uv0;
+            glm::vec2 deltaUV2 = uv2 - uv0;
+            
+            float det = deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x;
+            if (det != 0.0f)
+            {
+                float invDet = 1.0f / det;
+                
+                glm::vec3 tangent = invDet * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
+                glm::vec3 bitangent = invDet * (-deltaUV2.x * edge1 + deltaUV1.x * edge2);
+                
+                v0.mTangent += tangent;
+                v1.mTangent += tangent;
+                v2.mTangent += tangent;
+
+                v0.mBiTangent += bitangent;
+                v1.mBiTangent += bitangent;
+                v2.mBiTangent += bitangent;
+            }
+        }
+
+        for (auto& vertex : model.mVertices)
+        {
+            vertex.mTangent = glm::normalize(vertex.mTangent);
+            vertex.mBiTangent = glm::normalize(vertex.mBiTangent);
         }
     }
 
@@ -229,19 +289,17 @@ namespace FS
                                                                                       AlphaMode::eTransparent;
 
             model.mMaterials.emplace_back(baseColorFactor,
-                                          metallicFactor,
-                                          roughnessFactor,
                                           baseColorTextureIndex,
-                                          normalTextureIndex,
                                           metallicRoughnessTextureIndex,
                                           occlusionTextureIndex,
-                                          ao,
                                           emissiveTextureIndex,
                                           emissiveFactor,
-                                          alphaMode,
-                                          material.doubleSided,
+                                          metallicFactor,
+                                          roughnessFactor,
+                                          ao,
                                           material.alphaCutoff,
-                                          material.ior);
+                                          material.ior,
+                                          normalTextureIndex);
         }
     }
 
@@ -261,10 +319,10 @@ namespace FS
                 imageIndex = texture.imageIndex.value();
             }
 
-            model.mTextures.emplace_back(samplerIndex, imageIndex);
+            model.mTextures.emplace_back(imageIndex);
         }
     }
-    
+
     void ResourceManager::LoadGltfImages(Model& model, const fastgltf::Asset& asset)
     {
         for (const auto& [data, name] : asset.images)

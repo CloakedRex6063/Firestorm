@@ -1,11 +1,12 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
 
-layout(location = 1) out vec2 outUV;
-layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec3 outPos;
-layout(location = 4) out vec3 outCamPos;
-layout(location = 5) out flat uint outLightCount;
+layout(location = 0) out vec2 outUV;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec3 outPos;
+layout(location = 3) out mat3 outTBN;
+layout(location = 6) out vec3 outCamPos;
+layout(location = 7) out flat uint outLightCount;
 
 struct Vertex
 {
@@ -13,6 +14,10 @@ struct Vertex
     float uvX;
     vec3 normal;
     float uvY;
+    vec3 tangent;
+    float padding0;
+    vec3 bitangent;
+    float padding1;
 };
 
 layout(buffer_reference, std430) readonly buffer VertexBuffer { Vertex vertices[]; };
@@ -20,15 +25,28 @@ layout(buffer_reference, std430) readonly buffer VertexBuffer { Vertex vertices[
 struct Material
 {
     vec4 baseColorFactor;
-    float metallicFactor;
-    float roughnessFactor;
+
     int baseTextureIndex;
     int roughnessTextureIndex;
+    int occlusionTextureIndex;
+    int emissiveTextureIndex;
+
+    vec3 emissiveFactor;
+    float metallicFactor;
+
+    float roughnessFactor;
+    float ao;
+    float alphaCutoff;
+    float ior;
+
+    int normalTextureIndex;
+    int padding0;
+    int padding1;
+    int padding2;
 };
 
 struct Texture
 {
-    int samplerIndex;
     int imageIndex;
 };
 
@@ -61,8 +79,11 @@ void main()
     gl_Position = projection * view * pushConstant.model * vec4(v.position, 1.0);
     outUV = vec2(v.uvX, v.uvY);
     outPos = vec3(pushConstant.model * vec4(v.position, 1.0));
-    outNormal = normalize((pushConstant.model * vec4(v.normal, 0.0)).xyz);
+    outNormal = normalize(vec3(pushConstant.model * vec4(v.normal, 0.0)));
     outCamPos = vec3(camPos);
     outLightCount = lightCount;
 
+    vec3 tangent = normalize(vec3(pushConstant.model * vec4(v.tangent,   0.0)));
+    vec3 bitangent = normalize(vec3(pushConstant.model * vec4(v.bitangent, 0.0)));
+    outTBN = mat3(tangent, bitangent, outNormal);
 }

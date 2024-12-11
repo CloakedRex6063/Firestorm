@@ -37,6 +37,10 @@ namespace FS
     {
         mDeltaTime = deltaTime;
         Renderer().Render();
+        for (auto& system : std::views::values(mSystems))
+        {
+            system->Update(deltaTime);
+        }
     }
 
     void Engine::EndFrame() const
