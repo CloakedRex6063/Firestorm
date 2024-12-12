@@ -48,7 +48,7 @@ namespace FS
         float mAO{};
         float mAlphaCutoff{};
         float mIOR{};
-        int normalTextureIndex{};
+        int mNormalTextureIndex{};
         int padding0{};
         int padding1{};
         int padding2{};
@@ -70,7 +70,7 @@ namespace FS
                     mAO,
                     mAlphaCutoff,
                     mIOR,
-                    normalTextureIndex);
+                    mNormalTextureIndex);
         }
     };
 

@@ -18,7 +18,7 @@ namespace FS
 
     std::optional<ResourceHandle> ResourceManager::LoadModel(const std::string& modelPath)
     {
-        std::optional<ResourceHandle> resource = ResourceManager::LoadModelBinary(modelPath);
+        std::optional<ResourceHandle> resource = LoadModelBinary(modelPath);
         if (resource.has_value())
         {
             return resource;
@@ -39,6 +39,7 @@ namespace FS
         if (model.has_value())
         {
             mUploadQueue[modelPath] = model.value();
+            Log::Error("Successfully loaded Model %s", modelPath.c_str());
             return ResourceHandle();
         }
 
@@ -98,7 +99,7 @@ namespace FS
         LoadGltfTextures(model, asset);
         LoadGltfImages(model, asset);
 
-        //Serializer::Serialize("model.bin", model);
+        Serializer::Serialize("model.bin", model);
 
         mUploadQueue[modelPath.string()] = model;
         return ResourceHandle();

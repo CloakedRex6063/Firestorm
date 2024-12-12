@@ -120,7 +120,7 @@ namespace FS
         ImGui::NewFrame();
         GetResourceLoader().UpdateLights();
         GetResourceLoader().UploadModels();
-        
+
         auto& [fence, renderSemaphore, presentSemaphore, command] = GetFrameData();
         GetContext().WaitForFence(fence, 1000000000);
         GetContext().ResetFence(fence);
@@ -144,7 +144,7 @@ namespace FS
         auto& currentImage = GetSwapchain().GetCurrentImage();
 
         command.Reset();
-        command.Begin(0);
+        command.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         ImGui::ShowDemoWindow();
         ImGui::Render();
@@ -161,9 +161,9 @@ namespace FS
 
         command.TransitionImageLayout(*mRenderImage, ImageLayout::eColorAttachment, ImageLayout::eTransferSrc);
         command.TransitionImageLayout(currentImage, ImageLayout::eUndefined, ImageLayout::eTransferDst);
-        
+
         command.BlitImage(*mRenderImage, currentImage, VulkanUtils::GetImageBlit2());
-        
+
         // command.BeginRendering(currentImage.GetView(), nullptr, GetSwapchain().GetExtent(), false);
         //
         // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command);
@@ -219,8 +219,7 @@ namespace FS
                                       GetGeometryPipeline().GetLayout(),
                                       GetResourceLoader().GetDescriptor());
 
-            
-            auto parent = glm::mat4(1.f); 
+            auto parent = glm::mat4(1.f);
 
             for (const auto& nodeIndex : model.mRootNodes)
             {
