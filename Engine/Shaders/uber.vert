@@ -59,7 +59,6 @@ layout(push_constant) uniform Constant
     mat4 model;
     VertexBuffer vertexBuffer;
     MaterialBuffer materialBuffer;
-    TextureBuffer texBuffer;
     int materialIndex;
 }
 pushConstant;

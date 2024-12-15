@@ -7,7 +7,6 @@
 #include "Core/Render/Vulkan/VulkanQueue.h"
 #include "Core/Render/Vulkan/VulkanSync.h"
 #include "Core/Render/Vulkan/Resources/VulkanDescriptor.h"
-#include "Core/Render/Vulkan/Tools/VulkanUtils.h"
 
 namespace FS
 {
@@ -53,8 +52,6 @@ namespace FS
         mModels.reserve(mModels.size() + models.size());
         for (auto& [path, model] : models)
         {
-            std::unordered_map<uint64_t, uint16_t> incrementorMap;
-
             std::vector<VulkanImage> images;
             images.reserve(model.mImageURIs.size());
             for (const auto& [index, image] : std::views::enumerate(model.mImageURIs))
@@ -65,24 +62,26 @@ namespace FS
                 auto& vulkanImage = images.back();
 
                 mContext->UpdateDescriptorImage(mLinearSampler, vulkanImage.GetView(), GetDescriptor(), mIncrementor);
-                incrementorMap[index] = mIncrementor++;
+                mIncrementorMap[index] = mIncrementor++;
             }
 
-            for (auto& [mImageIndex] : model.mTextures)
+            for (auto& material : model.mMaterials)
             {
-                mImageIndex = incrementorMap[mImageIndex];
+                material.mBaseTextureIndex = GetIncrementorIndex(material.mBaseTextureIndex);
+                material.mEmissiveTextureIndex = GetIncrementorIndex(material.mEmissiveTextureIndex);
+                material.mNormalTextureIndex = GetIncrementorIndex(material.mNormalTextureIndex);
+                material.mOcclusionTextureIndex = GetIncrementorIndex(material.mOcclusionTextureIndex);
+                material.mRoughnessTextureIndex = GetIncrementorIndex(material.mRoughnessTextureIndex);
             }
 
             auto verticesSize = static_cast<uint32_t>(model.mVertices.size() * sizeof(Vertex));
             auto indicesSize = static_cast<uint32_t>(model.mIndices.size() * sizeof(uint32_t));
             auto materialSize = static_cast<uint32_t>(model.mMaterials.size() * sizeof(Material));
-            auto textureSize = static_cast<uint32_t>(model.mTextures.size() * sizeof(Texture));
 
             mModels.emplace_back(mContext,
                                  verticesSize,
                                  indicesSize,
                                  materialSize,
-                                 textureSize,
                                  std::move(images),
                                  model.mRootNodes,
                                  model.mNodes,
@@ -91,7 +90,6 @@ namespace FS
 
             mContext->CopyToDeviceBuffer(vulkanModel.mVertexBuffer.GetAllocation(), model.mVertices.data(), 0, verticesSize);
             mContext->CopyToDeviceBuffer(vulkanModel.mIndexBuffer.GetAllocation(), model.mIndices.data(), 0, indicesSize);
-            mContext->CopyToDeviceBuffer(vulkanModel.mTextureBuffer.GetAllocation(), model.mTextures.data(), 0, textureSize);
             mContext->CopyToDeviceBuffer(vulkanModel.mMaterialBuffer.GetAllocation(), model.mMaterials.data(), 0, materialSize);
         }
 
@@ -116,5 +114,11 @@ namespace FS
                 }
             });
         std::memcpy(mMappedLightMemory, mLights.data(), sizeof(Component::Light) * totalSize);
+    }
+    
+    inline int VulkanResourceLoader::GetIncrementorIndex(const uint32_t index) const
+    {
+        if (!mIncrementorMap.contains(index)) return -1;
+        return mIncrementorMap.at(index);
     }
 }  // namespace FS

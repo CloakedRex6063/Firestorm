@@ -22,7 +22,6 @@ namespace FS
         static void LoadGltfMeshes(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfTangents(Model& model);
         static void LoadGltfMaterials(Model& model, const fastgltf::Asset& asset);
-        static void LoadGltfTextures(Model& model, const fastgltf::Asset& asset);
         static void LoadGltfImages(Model& model, const fastgltf::Asset& asset);
 
         std::unordered_map<std::string, Model> mUploadQueue;

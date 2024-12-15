@@ -244,7 +244,6 @@ namespace FS
             const ModelPushConstant pushConstant{.mModel = currentTransform,
                                                  .mVertexAddress = model.mVertexBufferAddress,
                                                  .mMaterialAddress = model.mMaterialBufferAddress,
-                                                 .mTextureAddress = model.mTextureBufferAddress,
                                                  .mMaterialBaseIndex = mMaterialIndex};
             command.SetPushConstants(GetGeometryPipeline().GetLayout(),
                                      VK_SHADER_STAGE_ALL,

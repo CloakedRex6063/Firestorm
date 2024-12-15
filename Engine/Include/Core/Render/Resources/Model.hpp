@@ -49,7 +49,7 @@ namespace FS
         float mAlphaCutoff{};
         float mIOR{};
         int mNormalTextureIndex{};
-        int padding0{};
+        int mPadding0{};
         int padding1{};
         int padding2{};
 
@@ -91,7 +91,7 @@ namespace FS
     struct Texture
     {
         int mImageIndex{};
-
+        
         template <typename Archive>
         void serialize(Archive& archive)
         {
@@ -135,22 +135,20 @@ namespace FS
         std::vector<Node> mNodes{};
         std::vector<Mesh> mMeshes{};
         std::vector<Material> mMaterials{};
-        std::vector<Texture> mTextures{};
         std::vector<std::string> mImageURIs{};
-
         std::vector<Vertex> mVertices{};
         std::vector<uint32_t> mIndices{};
 
         template <typename Archive>
         void serialize(Archive& archive)
         {
-            archive(mRootNodes, mNodes, mMeshes, mMaterials, mTextures, mImageURIs, mVertices, mIndices);
+            archive(mRootNodes, mNodes, mMeshes, mMaterials, mImageURIs, mVertices, mIndices);
         }
     };
 
     struct ResourceHandle
     {
-        std::shared_ptr<std::string> mResourceReference;
+        std::shared_ptr<std::string> mResourceReference{};
 
         bool operator==(const ResourceHandle& other) const
         {

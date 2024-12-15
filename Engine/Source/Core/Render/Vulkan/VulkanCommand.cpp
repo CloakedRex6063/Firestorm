@@ -203,11 +203,8 @@ namespace FS
         vkCmdCopyImage2(mCommandBuffer, &copyImageInfo);
     }
 
-    void VulkanCommand::BlitImage(VkImage srcImage,
-                                  VkImage dstImage,
-                                  VkImageBlit2 blit, const VkFilter filter) const
+    void VulkanCommand::BlitImage(VkImage srcImage, VkImage dstImage, VkImageBlit2 blit, const VkFilter filter) const
     {
-
         const VkBlitImageInfo2 blitImageInfo = {.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
                                                 .srcImage = srcImage,
                                                 .srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

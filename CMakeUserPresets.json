@@ -27,7 +27,7 @@
       "description": "Release build with custom flags and path",
       "hidden": false,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ]

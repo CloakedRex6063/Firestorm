@@ -20,13 +20,14 @@ namespace FS
         void UpdateLights();
 
     private:
+        int GetIncrementorIndex(uint32_t index) const;
+        
         std::shared_ptr<VulkanContext> mContext;
         std::unique_ptr<VulkanCommand> mTransferCommand;
         VulkanFence mFence;
+        
         std::vector<VulkanModel> mModels;
-
         std::vector<Component::Light> mLights;
-
         VulkanBuffer mLightBuffer;
         void* mMappedLightMemory;
 
@@ -34,7 +35,8 @@ namespace FS
         VkSampler mLinearSampler{};
 
         ktxVulkanDeviceInfo mDeviceInfo{};
-        
+
+        std::unordered_map<uint32_t, uint16_t> mIncrementorMap;
         uint16_t mIncrementor = 0;
     };
 }  // namespace FS

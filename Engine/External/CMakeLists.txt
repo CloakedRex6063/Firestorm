@@ -40,6 +40,7 @@ target_link_libraries(Engine PUBLIC imgui)
 
 set( KTX_FEATURE_TESTS OFF CACHE BOOL "Create unit tests.")
 add_subdirectory(KTX)
+set_target_properties(ktx PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 target_link_libraries(Engine PUBLIC ktx)
 
 

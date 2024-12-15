@@ -8,7 +8,7 @@ namespace FS
         eOrthographic,
     };
 
-    enum class AlphaMode
+    enum class AlphaMode : int
     {
         eOpaque,
         eTransparent

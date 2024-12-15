@@ -11,7 +11,6 @@ namespace FS
         glm::mat4 mModel;
         VkDeviceAddress mVertexAddress;
         VkDeviceAddress mMaterialAddress;
-        VkDeviceAddress mTextureAddress;
         int mMaterialBaseIndex;
     };
 
@@ -21,7 +20,6 @@ namespace FS
                     uint32_t verticesSize,
                     uint32_t indicesSize,
                     uint32_t materialSize,
-                    uint32_t textureSize,
                     std::vector<VulkanImage>&& images,
                     const std::vector<uint32_t>& mRootNodes,
                     const std::vector<Node>& nodes,
@@ -37,10 +35,8 @@ namespace FS
         VulkanBuffer mVertexBuffer;
         VulkanBuffer mIndexBuffer;
         VulkanBuffer mMaterialBuffer;
-        VulkanBuffer mTextureBuffer;
         
         VkDeviceAddress mVertexBufferAddress{};
         VkDeviceAddress mMaterialBufferAddress{};
-        VkDeviceAddress mTextureBufferAddress{};
     };
 }  // namespace FS

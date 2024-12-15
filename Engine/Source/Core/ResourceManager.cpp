@@ -18,7 +18,7 @@ namespace FS
 
     std::optional<ResourceHandle> ResourceManager::LoadModel(const std::string& modelPath)
     {
-        std::optional<ResourceHandle> resource = LoadModelBinary(modelPath);
+        auto resource = LoadModelBinary(modelPath);
         if (resource.has_value())
         {
             return resource;
@@ -34,8 +34,7 @@ namespace FS
 
     std::optional<ResourceHandle> ResourceManager::LoadModelBinary(const std::string& modelPath)
     {
-        auto model = Serializer::Deserialize<Model>("model.bin");
-
+        const auto model = Serializer::Deserialize<Model>("model.bin");
         if (model.has_value())
         {
             mUploadQueue[modelPath] = model.value();
@@ -84,7 +83,6 @@ namespace FS
         model.mNodes.reserve(asset.nodes.size());
         model.mMeshes.reserve(asset.meshes.size());
         model.mMaterials.reserve(asset.materials.size());
-        model.mTextures.reserve(asset.textures.size());
         model.mImageURIs.reserve(asset.images.size());
 
         std::ranges::transform(assetNodes,
@@ -96,10 +94,9 @@ namespace FS
         LoadGltfNodes(model, asset);
         LoadGltfMeshes(model, asset);
         LoadGltfMaterials(model, asset);
-        LoadGltfTextures(model, asset);
         LoadGltfImages(model, asset);
 
-        Serializer::Serialize("model.bin", model);
+        //Serializer::Serialize("model.bin", model);
 
         mUploadQueue[modelPath.string()] = model;
         return ResourceHandle();
@@ -201,33 +198,33 @@ namespace FS
             unsigned int i0 = indices[i];
             unsigned int i1 = indices[i + 1];
             unsigned int i2 = indices[i + 2];
-            
+
             Vertex& v0 = vertices[i0];
             Vertex& v1 = vertices[i1];
             Vertex& v2 = vertices[i2];
-            
+
             glm::vec3 p0 = v0.mPosition;
             glm::vec3 p1 = v1.mPosition;
             glm::vec3 p2 = v2.mPosition;
-            
+
             glm::vec2 uv0 = glm::vec2(v0.mUVx, v0.mUVy);
             glm::vec2 uv1 = glm::vec2(v1.mUVx, v1.mUVy);
             glm::vec2 uv2 = glm::vec2(v2.mUVx, v2.mUVy);
-            
+
             glm::vec3 edge1 = p1 - p0;
             glm::vec3 edge2 = p2 - p0;
-            
+
             glm::vec2 deltaUV1 = uv1 - uv0;
             glm::vec2 deltaUV2 = uv2 - uv0;
-            
+
             float det = deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x;
             if (det != 0.0f)
             {
                 float invDet = 1.0f / det;
-                
+
                 glm::vec3 tangent = invDet * (deltaUV2.y * edge1 - deltaUV1.y * edge2);
                 glm::vec3 bitangent = invDet * (-deltaUV2.x * edge1 + deltaUV1.x * edge2);
-                
+
                 v0.mTangent += tangent;
                 v1.mTangent += tangent;
                 v2.mTangent += tangent;
@@ -252,75 +249,61 @@ namespace FS
             const auto& [baseFactor, metallicFactor, roughnessFactor, baseTexture, metallicRoughnessTexture] = material.pbrData;
             auto baseColorFactor = glm::make_vec4(baseFactor.data());
 
-            int baseColorTextureIndex = -1;
+            int baseColorImageIndex = -1;
             if (baseTexture.has_value())
             {
-                baseColorTextureIndex = static_cast<int>(baseTexture.value().textureIndex);
+                const auto baseColorTextureIndex = static_cast<int>(baseTexture.value().textureIndex);
+                baseColorImageIndex = static_cast<int>(asset.textures[baseColorTextureIndex].imageIndex.value());
             }
 
-            int metallicRoughnessTextureIndex = -1;
+            int metallicRoughnessImageIndex = -1;
             if (metallicRoughnessTexture.has_value())
             {
-                metallicRoughnessTextureIndex = static_cast<int>(metallicRoughnessTexture.value().textureIndex);
+                const auto metallicRoughnessTextureIndex = static_cast<int>(metallicRoughnessTexture.value().textureIndex);
+                metallicRoughnessImageIndex =
+                    static_cast<int>(asset.textures[metallicRoughnessTextureIndex].imageIndex.value());
             }
 
-            int occlusionTextureIndex = -1;
+            int occlusionImageIndex = -1;
             float ao = 1.f;
             if (material.occlusionTexture.has_value())
             {
-                occlusionTextureIndex = static_cast<int>(material.occlusionTexture.value().textureIndex);
+                const auto occlusionTextureIndex = static_cast<int>(material.occlusionTexture.value().textureIndex);
+                occlusionImageIndex = static_cast<int>(asset.textures[occlusionTextureIndex].imageIndex.value());
                 ao = material.occlusionTexture.value().strength;
             }
 
-            int emissiveTextureIndex = -1;
+            int emissiveImageIndex = -1;
             auto emissiveFactor = glm::vec3(1.0f);
             if (material.emissiveTexture.has_value())
             {
-                emissiveTextureIndex = static_cast<int>(material.emissiveTexture.value().textureIndex);
+                const auto emissiveTextureIndex = static_cast<int>(material.emissiveTexture.value().textureIndex);
+                emissiveImageIndex = static_cast<int>(asset.textures[emissiveTextureIndex].imageIndex.value());
                 emissiveFactor = glm::make_vec3(material.emissiveFactor.data());
             }
 
-            int normalTextureIndex = -1;
+            int normalImageIndex = -1;
             if (material.normalTexture.has_value())
             {
-                normalTextureIndex = static_cast<int>(material.normalTexture.value().textureIndex);
+                const auto normalTextureIndex = static_cast<int>(material.normalTexture.value().textureIndex);
+                normalImageIndex = static_cast<int>(asset.textures[normalTextureIndex].imageIndex.value());
             }
 
             AlphaMode alphaMode = material.alphaMode == fastgltf::AlphaMode::Opaque ? AlphaMode::eOpaque :
                                                                                       AlphaMode::eTransparent;
 
             model.mMaterials.emplace_back(baseColorFactor,
-                                          baseColorTextureIndex,
-                                          metallicRoughnessTextureIndex,
-                                          occlusionTextureIndex,
-                                          emissiveTextureIndex,
+                                          baseColorImageIndex,
+                                          metallicRoughnessImageIndex,
+                                          occlusionImageIndex,
+                                          emissiveImageIndex,
                                           emissiveFactor,
                                           metallicFactor,
                                           roughnessFactor,
                                           ao,
                                           material.alphaCutoff,
                                           material.ior,
-                                          normalTextureIndex);
-        }
-    }
-
-    void ResourceManager::LoadGltfTextures(Model& model, const fastgltf::Asset& asset)
-    {
-        for (const auto& texture : asset.textures)
-        {
-            int samplerIndex = -1;
-            if (texture.samplerIndex.has_value())
-            {
-                samplerIndex = texture.samplerIndex.value();
-            }
-
-            int imageIndex = -1;
-            if (texture.imageIndex.has_value())
-            {
-                imageIndex = texture.imageIndex.value();
-            }
-
-            model.mTextures.emplace_back(imageIndex);
+                                          normalImageIndex);
         }
     }
 

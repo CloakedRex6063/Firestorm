@@ -42,23 +42,15 @@ struct Material
     int padding2;
 };
 
-struct Texture
-{
-    int imageIndex;
-};
-
 layout(buffer_reference, std430) readonly buffer VertexBuffer { Vertex vertices[]; };
 
 layout(buffer_reference, std430) readonly buffer MaterialBuffer { Material materials[]; };
-
-layout(buffer_reference, std430) readonly buffer TextureBuffer { Texture textures[]; };
 
 layout(push_constant) uniform Constant
 {
     mat4 model;
     VertexBuffer vertexBuffer;
     MaterialBuffer materialBuffer;
-    TextureBuffer texBuffer;
     int materialIndex;
 }
 pushConstant;
@@ -112,9 +104,9 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec3 GetNormalFromMap(Texture tex)
+vec3 GetNormalFromMap(int textureIndex)
 {
-    vec3 tangentNormal = texture(samplers[tex.imageIndex], inUV).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(samplers[textureIndex], inUV).xyz * 2.0 - 1.0;
     
     vec3 Q1  = dFdx(inPos);
     vec3 Q2  = dFdy(inPos);
@@ -142,15 +134,13 @@ void main()
     vec4 baseColor = material.baseColorFactor;
     if(useBaseTexture)
     {
-        Texture tex = pushConstant.texBuffer.textures[material.baseTextureIndex];
-        baseColor = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+        baseColor = pow(texture(samplers[material.baseTextureIndex], inUV), vec4(2.2));
     }
 
     vec4 emissive = vec4(0);
     if(useEmissiveTexture)
     {
-        Texture tex = pushConstant.texBuffer.textures[material.emissiveTextureIndex];
-        emissive = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+        emissive = pow(texture(samplers[material.emissiveTextureIndex], inUV), vec4(2.2));
     }
 
     float occlusion = 1.f;
@@ -158,8 +148,7 @@ void main()
     float rough = material.roughnessFactor;
     if(useRoughnessTexture)
     {
-        Texture tex = pushConstant.texBuffer.textures[material.roughnessTextureIndex];
-        vec4 orm = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2));
+        vec4 orm = pow(texture(samplers[material.roughnessTextureIndex], inUV), vec4(2.2));
         occlusion = orm.r;
         rough = orm.g * material.roughnessFactor;
         metal = orm.b * material.metallicFactor;
@@ -167,16 +156,14 @@ void main()
 
     if(useOcclusionTexture)
     {
-        Texture tex = pushConstant.texBuffer.textures[material.occlusionTextureIndex];
-        occlusion = pow(texture(samplers[tex.imageIndex], inUV), vec4(2.2)).r;
+        occlusion = pow(texture(samplers[material.occlusionTextureIndex], inUV), vec4(2.2)).r;
     }
     occlusion *= material.ao;
 
     vec3 N = inNormal;
     if(useNormalTexture)
     {
-        Texture tex = pushConstant.texBuffer.textures[material.normalTextureIndex];
-        N = GetNormalFromMap(tex);
+        N = GetNormalFromMap(material.normalTextureIndex);
     }
 
     vec3 V = normalize(inCamPos - inPos);
