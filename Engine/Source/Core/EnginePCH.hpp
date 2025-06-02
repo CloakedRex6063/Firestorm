@@ -27,6 +27,10 @@
 #include "ranges"
 #include "string_view"
 #include "print"
+#include "fstream"
+#include "filesystem"
+#include "unordered_map"
+#include "functional"
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -71,10 +75,11 @@ namespace FS
     using Vec = std::vector<T>;
 
     template <typename T, size_t N>
-    using Arr = std::array<T, N>;
+    using Array = std::array<T, N>;
 
     template <typename T>
     using Span = std::span<T>;
 }
 
 #include "Tools/Warnings.hpp"
+#include "Tools/Log.hpp"

@@ -75,23 +75,11 @@ namespace FS::DX12
         D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
 
-    struct RenderTarget
-    {
-        Descriptor RenderDescriptor;
-        Descriptor TextureDescriptor;
-        ResourceHandle ResourceHandle = ResourceHandle::eNull;
-    };
-
-    struct DepthStencil
-    {
-        Descriptor DepthDescriptor;
-        Descriptor TextureDescriptor;
-        ResourceHandle ResourceHandle = ResourceHandle::eNull;
-    };
-
     struct Texture
     {
-        Descriptor Descriptor;
+        Descriptor RtvDescriptor;
+        Descriptor DsvDescriptor;
+        Descriptor SrvDescriptor;
         ResourceHandle ResourceHandle = ResourceHandle::eNull;
     };
 
@@ -99,5 +87,6 @@ namespace FS::DX12
     {
         Descriptor Descriptor;
         ResourceHandle ResourceHandle = ResourceHandle::eNull;
+        BufferType BufferType = BufferType::eStorage;
     };
 } // namespace FS::DX12

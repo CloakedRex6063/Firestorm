@@ -14,6 +14,7 @@ void FS::RenderBackendDX12::Init()
     CreateFrameData();
     CreateRootSignature();
     CreateFences();
+    CheckRebarSupport();
     Log::Info("Render Backend Initialized");
 }
 
@@ -59,12 +60,13 @@ void FS::RenderBackendDX12::Resize()
     WaitForGPU();
     for (const auto& frame_data : m_frame_datas)
     {
-        DestroyRenderTarget(frame_data.RenderTargetHandle);
+        DestroyTexture(frame_data.RenderTargetHandle);
     }
     const auto size = Window::GetWindowSize();
 
     const auto result = m_swap_chain->ResizeBuffers(
-        kFrameCount, size.x, size.y, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
+        kFrameCount, static_cast<u32>(size.x), static_cast<u32>(size.y), DXGI_FORMAT_B8G8R8A8_UNORM,
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING);
     DX12::ThrowIfFailed(result, "RenderContextDX12::Resize Failed to resize Swapchain");
 
     for (const auto& [index, frameData] : std::views::enumerate(m_frame_datas))
@@ -75,13 +77,14 @@ void FS::RenderBackendDX12::Resize()
         const auto resource_handle = static_cast<ResourceHandle>(m_resources.size());
         m_resources.emplace_back(resource);
 
-        const RenderTargetCreateInfo create_info{
-            .Size = Window::GetWindowSize(),
+        const TextureCreateInfo create_info{
+            .Dimensions = Window::GetWindowSize(),
             .Format = Format::eB8G8R8A8_UNORM,
             .ViewType = ViewType::eTexture2D,
+            .TextureFlags = TextureFlags::eRenderTexture,
             .ResourceHandle = resource_handle,
         };
-        frameData.RenderTargetHandle = CreateRenderTarget(create_info, debug_name);
+        frameData.RenderTargetHandle = CreateTexture(create_info, debug_name);
     }
     m_frame_index = 0;
 }
@@ -140,73 +143,174 @@ void FS::RenderBackendDX12::BeginCommand(CommandHandle commandHandle)
     DX12::ThrowIfFailed(allocResult, "RenderContextDX12::BeginCommand Failed to reset command allocator");
     const auto listResult = CommandList->Reset(CommandAllocator, nullptr);
     DX12::ThrowIfFailed(listResult, "RenderContextDX12::BeginCommand Failed to reset command");
+    CommandList->SetGraphicsRootSignature(m_root_signature);
+    CommandList->SetComputeRootSignature(m_root_signature);
+    CommandList->SetDescriptorHeaps(1, &m_cbv_uav_srv_allocator.Heap);
 }
 
 void FS::RenderBackendDX12::EndCommand(CommandHandle commandHandle)
 {
-    const auto& renderTarget = m_render_targets.at(static_cast<u32>(GetFrameData().RenderTargetHandle));
+    const auto& renderTarget = m_textures.at(static_cast<u32>(GetFrameData().RenderTargetHandle));
     TransitionResource(commandHandle, renderTarget.ResourceHandle, D3D12_RESOURCE_STATE_PRESENT);
     const auto& [CommandAllocator, CommandList] = m_commands.at(static_cast<u32>(commandHandle));
     const auto listResult = CommandList->Close();
     DX12::ThrowIfFailed(listResult, "RenderContextDX12::EndCommand Failed to close command list");
 }
 
-void FS::RenderBackendDX12::ClearRenderTarget(CommandHandle command_handle, RenderTargetHandle render_target_handle,
+void FS::RenderBackendDX12::PushConstant(CommandHandle commandHandle, const u32 count, const void* data)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    commandList->SetGraphicsRoot32BitConstants(0, count, data, 0);
+}
+
+void FS::RenderBackendDX12::SetViewport(CommandHandle commandHandle, const Viewport& viewport)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    const D3D12_VIEWPORT dxViewport = {
+        .TopLeftX = viewport.Offset.x,
+        .TopLeftY = viewport.Offset.y,
+        .Width = viewport.Dimensions.x,
+        .Height = viewport.Dimensions.y,
+        .MinDepth = viewport.DepthRange.x,
+        .MaxDepth = viewport.DepthRange.y,
+    };
+    commandList->RSSetViewports(1, &dxViewport);
+}
+
+void FS::RenderBackendDX12::SetScissor(CommandHandle commandHandle, const Scissor& scissor)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    const D3D12_RECT scissorRect = {
+        .left = scissor.Min.x, .top = scissor.Min.y, .right = scissor.Max.x, .bottom = scissor.Max.y
+    };
+    commandList->RSSetScissorRects(1, &scissorRect);
+}
+
+void FS::RenderBackendDX12::SetPrimitiveTopology(CommandHandle commandHandle, const PrimitiveTopology topology)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    commandList->IASetPrimitiveTopology(DX12::GetPrimitiveTopology(topology));
+}
+
+void FS::RenderBackendDX12::BeginRenderPass(CommandHandle commandHandle, const RenderPassInfo& renderPassInfo)
+{
+    std::array<D3D12_RENDER_PASS_RENDER_TARGET_DESC, 8> render_target_descs{};
+    for (const auto& [index, renderTargetIndex] : std::views::enumerate(renderPassInfo.RenderTargets))
+    {
+        const auto& render_target = m_textures.at(static_cast<u32>(renderTargetIndex));
+        render_target_descs[index] = DX12::GetRenderTargetDesc(render_target,
+                                                               renderPassInfo.RenderTargetLoadOp,
+                                                               renderPassInfo.RenderTargetStoreOp,
+                                                               renderPassInfo.ClearColor);
+        TransitionResource(commandHandle, render_target.ResourceHandle, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    }
+
+    D3D12_RENDER_PASS_DEPTH_STENCIL_DESC depthStencilDesc = {};
+    if (renderPassInfo.DepthStencil != TextureHandle::eNull)
+    {
+        const auto& depthStencil = m_textures.at(static_cast<u32>(renderPassInfo.DepthStencil));
+        depthStencilDesc = DX12::GetDepthStencilDesc(depthStencil,
+                                                     renderPassInfo.DepthStencilLoadOp,
+                                                     renderPassInfo.DepthStencilStoreOp,
+                                                     renderPassInfo.ClearDepth);
+    }
+
+    const auto* desc = renderPassInfo.DepthStencil != TextureHandle::eNull ? &depthStencilDesc : nullptr;
+
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    commandList->BeginRenderPass(renderPassInfo.RenderTargets.size(),
+                                 render_target_descs.data(),
+                                 desc,
+                                 D3D12_RENDER_PASS_FLAG_NONE);
+}
+
+void FS::RenderBackendDX12::EndRenderPass(CommandHandle commandHandle)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    commandList->EndRenderPass();
+}
+
+void FS::RenderBackendDX12::BindShader(CommandHandle commandHandle, ShaderHandle shaderHandle)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    const auto& shader = m_shaders.at(static_cast<u32>(shaderHandle));
+    commandList->SetPipelineState(shader);
+}
+
+void FS::RenderBackendDX12::ClearRenderTarget(CommandHandle command_handle, TextureHandle render_target_handle,
                                               glm::vec4 clear_color)
 {
     const auto& command = m_commands[static_cast<u32>(command_handle)].CommandList;
-    const auto& render_target = m_render_targets[static_cast<u32>(command_handle)];
+    const auto& render_target = m_textures[static_cast<u32>(command_handle)];
     TransitionResource(command_handle, render_target.ResourceHandle, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    command->ClearRenderTargetView(render_target.RenderDescriptor.Cpu, glm::value_ptr(clear_color), 0, nullptr);
+    command->ClearRenderTargetView(render_target.RtvDescriptor.Cpu, glm::value_ptr(clear_color), 0, nullptr);
 }
 
-FS::RenderTargetHandle FS::RenderBackendDX12::CreateRenderTarget(const RenderTargetCreateInfo create_info,
-                                                                 const std::string_view debug_name)
+void FS::RenderBackendDX12::Draw(const CommandHandle commandHandle, const u32 vertexCount, const u32 instanceCount,
+                                 const u32 vertexOffset,
+                                 const u32 firstInstance)
 {
-    DX12::RenderTarget rt;
-    rt.ResourceHandle = create_info.ResourceHandle;
-    const TextureCreateInfo texture_create_info{
-        .Width = create_info.Size.x,
-        .Height = create_info.Size.y,
-        .Depth = 1,
-        .MipLevels = 1,
-        .Format = create_info.Format,
-        .ViewType = create_info.ViewType,
-        .RenderTarget = true,
-    };
-    if (rt.ResourceHandle == ResourceHandle::eNull)
-    {
-        rt.ResourceHandle = CreateResource(m_texture_heap, texture_create_info, debug_name);
-    }
-    rt.RenderDescriptor = CreateRenderTargetView(rt.ResourceHandle, create_info);
-    rt.TextureDescriptor = CreateShaderResourceView(rt.ResourceHandle, texture_create_info);
-    const auto handle = static_cast<RenderTargetHandle>(m_render_targets.size());
-    m_render_targets.emplace_back(rt);
-    return handle;
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    commandList->DrawInstanced(vertexCount, instanceCount, vertexOffset, firstInstance);
 }
 
-FS::DepthStencilHandle FS::RenderBackendDX12::CreateDepthStencil(const DepthStencilCreateInfo create_info,
-                                                                 const std::string_view debug_name)
+void FS::RenderBackendDX12::DrawIndexed(const CommandHandle commandHandle, const u32 indexCount,
+                                        const u32 instanceCount, const u32 firstIndex,
+                                        const int vertexOffset, const u32 firstInstance)
 {
-    DX12::DepthStencil ds;
-    ds.ResourceHandle = create_info.ResourceHandle;
-    const TextureCreateInfo texture_create_info{
-        .Width = create_info.Size.x,
-        .Height = create_info.Size.y,
-        .Depth = 1,
-        .MipLevels = 1,
-        .Format = create_info.Format,
-        .ViewType = ViewType::eTexture2D,
-        .DepthStencil = true,
-    };
-    if (ds.ResourceHandle == ResourceHandle::eNull)
+    const auto& [CommandAllocator, CommandList] = m_commands.at(static_cast<u32>(commandHandle));
+    CommandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void FS::RenderBackendDX12::BlitToSwapchain(CommandHandle commandHandle, TextureHandle render_target_handle)
+{
+    const auto& commandList = m_commands.at(static_cast<u32>(commandHandle)).CommandList;
+    const auto& renderTarget = m_textures.at(static_cast<u32>(render_target_handle));
+    const auto& srcResource = m_resources.at(static_cast<u32>(renderTarget.ResourceHandle));
+    TransitionResource(commandHandle, renderTarget.ResourceHandle, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+    const auto& swapchainRenderTarget = m_textures.at(static_cast<u32>(GetFrameData().RenderTargetHandle));
+    const auto& dstResource = m_resources.at(static_cast<u32>(swapchainRenderTarget.ResourceHandle));
+    TransitionResource(commandHandle, swapchainRenderTarget.ResourceHandle, D3D12_RESOURCE_STATE_COPY_DEST);
+
+    commandList->CopyResource(dstResource.BaseResource, srcResource.BaseResource);
+}
+
+FS::TextureHandle FS::RenderBackendDX12::CreateTexture(const TextureCreateInfo create_info,
+                                                       const std::string_view debug_name)
+{
+    DX12::Texture texture;
+    texture.ResourceHandle = create_info.ResourceHandle;
+    if (texture.ResourceHandle == ResourceHandle::eNull)
     {
-        ds.ResourceHandle = CreateResource(m_texture_heap, texture_create_info, debug_name);
+        texture.ResourceHandle = CreateResource(m_texture_heap, create_info, debug_name);
     }
-    ds.DepthDescriptor = CreateDepthStencilView(ds.ResourceHandle, create_info);
-    ds.TextureDescriptor = CreateShaderResourceView(ds.ResourceHandle, texture_create_info);
-    const auto handle = static_cast<DepthStencilHandle>(m_render_targets.size());
-    m_depth_stencils.emplace_back(ds);
+    if (create_info.TextureFlags & TextureFlags::eRenderTexture)
+    {
+        texture.RtvDescriptor = CreateRenderTargetView(texture.ResourceHandle, create_info);
+    }
+    if (create_info.TextureFlags & TextureFlags::eDepthTexture)
+    {
+        texture.DsvDescriptor = CreateDepthStencilView(texture.ResourceHandle);
+    }
+    if (create_info.TextureFlags & TextureFlags::eShaderResource)
+    {
+        texture.SrvDescriptor = CreateShaderResourceView(texture.ResourceHandle, create_info);
+    }
+
+    TextureHandle handle;
+    if (m_free_textures.empty())
+    {
+        handle = static_cast<TextureHandle>(m_textures.size());
+        m_textures.emplace_back(texture);
+    }
+    else
+    {
+        handle = m_free_textures.back();
+        m_free_textures.pop_back();
+        m_textures[static_cast<u32>(handle)] = texture;
+    }
+
     return handle;
 }
 
@@ -243,7 +347,8 @@ FS::CommandHandle FS::RenderBackendDX12::CreateCommand(const QueueType queue_typ
     return static_cast<CommandHandle>(m_commands.size() - 1);
 }
 
-FS::BufferHandle FS::RenderBackendDX12::CreateBuffer(const BufferCreateInfo& create_info, std::string_view debug_name)
+FS::BufferHandle FS::RenderBackendDX12::CreateBuffer(const BufferCreateInfo& create_info,
+                                                     const std::string_view debug_name)
 {
     DX12::Buffer buffer{};
 
@@ -254,7 +359,9 @@ FS::BufferHandle FS::RenderBackendDX12::CreateBuffer(const BufferCreateInfo& cre
         switch (create_info.Type)
         {
         case BufferType::eStorage:
+        case BufferType::eIndex:
             heap = m_buffer_heap;
+            break;
         case BufferType::eUniform:
             break;
         case BufferType::eStaging:
@@ -266,10 +373,22 @@ FS::BufferHandle FS::RenderBackendDX12::CreateBuffer(const BufferCreateInfo& cre
         }
         buffer.ResourceHandle = CreateResource(heap, create_info, debug_name);
     }
+
+    buffer.BufferType = create_info.Type;
+
     buffer.Descriptor = CreateShaderResourceView(buffer.ResourceHandle, create_info);
 
     const auto handle = static_cast<BufferHandle>(m_buffers.size());
     m_buffers.emplace_back(buffer);
+
+    if (create_info.UploadInfo.Data)
+    {
+        if (m_rebar_supported)
+        {
+            UploadToBuffer(handle, create_info.UploadInfo);
+        }
+    }
+
     return handle;
 }
 
@@ -346,31 +465,81 @@ FS::ShaderHandle FS::RenderBackendDX12::CreateShader(const ComputeShaderCreateIn
     return shaderHandle;
 }
 
-void FS::RenderBackendDX12::DestroyRenderTarget(RenderTargetHandle render_target_handle)
+void FS::RenderBackendDX12::DestroyTexture(TextureHandle texture_handle)
 {
-    const auto& renderTarget = m_render_targets.at(static_cast<u32>(render_target_handle));
-    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(renderTarget.ResourceHandle));
-    m_rtv_allocator.Free(renderTarget.RenderDescriptor);
-    m_cbv_uav_srv_allocator.Free(renderTarget.TextureDescriptor);
+    const auto& texture = m_textures.at(
+        static_cast<u32>(texture_handle));
+    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(texture.ResourceHandle));
+    if (texture.RtvDescriptor.Cpu.ptr)
+    {
+        m_rtv_allocator.Free(texture.RtvDescriptor);
+    }
+    if (texture.DsvDescriptor.Cpu.ptr)
+    {
+        m_dsv_allocator.Free(texture.DsvDescriptor);
+    }
+    if (texture.SrvDescriptor.Cpu.ptr)
+    {
+        m_cbv_uav_srv_allocator.Free(texture.SrvDescriptor);
+    }
     BaseResource->Release();
-}
-
-void FS::RenderBackendDX12::DestroyDepthStencil(DepthStencilHandle depth_stencil_handle)
-{
-    const auto& [DepthDescriptor, TextureDescriptor, ResourceHandle] = m_depth_stencils.at(
-        static_cast<u32>(depth_stencil_handle));
-    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(ResourceHandle));
-    m_dsv_allocator.Free(DepthDescriptor);
-    m_cbv_uav_srv_allocator.Free(TextureDescriptor);
-    BaseResource->Release();
+    m_free_textures.emplace_back(texture_handle);
 }
 
 void FS::RenderBackendDX12::DestroyBuffer(BufferHandle buffer_handle)
 {
+    const auto& [Descriptor, ResourceHandle, BufferType] = m_buffers.at(static_cast<u32>(buffer_handle));
+    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(ResourceHandle));
+    m_cbv_uav_srv_allocator.Free(Descriptor);
+    BaseResource->Release();
+}
+
+void* FS::RenderBackendDX12::MapBuffer(BufferHandle bufferHandle)
+{
+    const auto& buffer = m_buffers.at(static_cast<u32>(bufferHandle));
+    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(buffer.ResourceHandle));
+
+    constexpr D3D12_RANGE readRange = {0, 0};
+    void* mappedPtr = nullptr;
+    const auto result = BaseResource->Map(0, &readRange, &mappedPtr);
+    DX12::ThrowIfFailed(result, "Failed to map buffer");
+    return mappedPtr;
+}
+
+void FS::RenderBackendDX12::UnmapBuffer(BufferHandle bufferHandle)
+{
+    const auto& buffer = m_buffers.at(static_cast<u32>(bufferHandle));
+    const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(buffer.ResourceHandle));
+    BaseResource->Unmap(0, nullptr);
+}
+
+u32 FS::RenderBackendDX12::GetGPUAddress(TextureHandle textureHandle)
+{
+    const auto& texture = m_buffers.at(static_cast<u32>(textureHandle));
+    return texture.Descriptor.Index;
+}
+
+u32 FS::RenderBackendDX12::GetGPUAddress(BufferHandle bufferHandle)
+{
+    const auto& buffer = m_buffers.at(static_cast<u32>(bufferHandle));
+    return buffer.Descriptor.Index;
+}
+
+void FS::RenderBackendDX12::UploadToBuffer(BufferHandle buffer_handle,
+                                           const BufferUploadInfo& info)
+{
     const auto& buffer = m_buffers.at(static_cast<u32>(buffer_handle));
     const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(buffer.ResourceHandle));
-    m_cbv_uav_srv_allocator.Free(buffer.Descriptor);
-    BaseResource->Release();
+    constexpr D3D12_RANGE read_range{0, 0};
+    void* mapped;
+    const auto result = BaseResource->Map(0, &read_range, &mapped);
+    if (FAILED(result))
+    {
+        Log::Error("Failed to map buffer");
+        return;
+    }
+    std::memcpy(static_cast<char*>(mapped) + info.Offset, info.Data, info.Size);
+    BaseResource->Unmap(0, nullptr);
 }
 
 void FS::RenderBackendDX12::ChooseGPU()
@@ -542,13 +711,14 @@ void FS::RenderBackendDX12::CreateFrameData()
         const auto resource_handle = static_cast<ResourceHandle>(m_resources.size());
         m_resources.emplace_back(resource);
 
-        const RenderTargetCreateInfo create_info{
-            .Size = Window::GetWindowSize(),
+        const TextureCreateInfo create_info{
+            .Dimensions = Window::GetWindowSize(),
             .Format = Format::eB8G8R8A8_UNORM,
             .ViewType = ViewType::eTexture2D,
+            .TextureFlags = TextureFlags::eRenderTexture,
             .ResourceHandle = resource_handle,
         };
-        frameData.RenderTargetHandle = CreateRenderTarget(create_info, debug_name);
+        frameData.RenderTargetHandle = CreateTexture(create_info, debug_name);
     }
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 }
@@ -558,7 +728,7 @@ void FS::RenderBackendDX12::CreateDescriptorHeaps()
     m_rtv_allocator = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, "RTV Descriptor Heap");
     m_dsv_allocator = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, "DSV Descriptor Heap");
     m_cbv_uav_srv_allocator =
-        CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, "CBV_SRV_UAV Descriptor Heap");
+        CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, "CBV SRV UAV Descriptor Heap");
 }
 
 void FS::RenderBackendDX12::CreateHeaps()
@@ -637,6 +807,15 @@ void FS::RenderBackendDX12::CreateRootSignature()
     DX12::ThrowIfFailed(signature_result, "Failed to create root signature");
 }
 
+void FS::RenderBackendDX12::CheckRebarSupport()
+{
+    D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16 = {};
+    if (SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS16, &options16, sizeof(options16))))
+    {
+        m_rebar_supported = options16.GPUUploadHeapSupported;
+    }
+}
+
 FS::ResourceHandle FS::RenderBackendDX12::CreateResource(const DX12::Heap& heap, const TextureCreateInfo& create_info,
                                                          const std::string_view debug_name)
 {
@@ -644,21 +823,21 @@ FS::ResourceHandle FS::RenderBackendDX12::CreateResource(const DX12::Heap& heap,
     D3D12_CLEAR_VALUE clear_value{};
     auto clear_color = glm::vec4(0, 0, 0, 0);
     constexpr float clear_depth = 1.0f;
-    if (create_info.RenderTarget)
+    if (create_info.TextureFlags & TextureFlags::eRenderTexture)
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
         clear_value = CD3DX12_CLEAR_VALUE{DX12::GetFormat(create_info.Format), glm::value_ptr(clear_color)};
     }
-    else if (create_info.DepthStencil)
+    if (create_info.TextureFlags & TextureFlags::eDepthTexture)
     {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        clear_value = CD3DX12_CLEAR_VALUE{DXGI_FORMAT_R32_FLOAT, &clear_depth};
+        clear_value = CD3DX12_CLEAR_VALUE{DXGI_FORMAT_D32_FLOAT, &clear_depth};
     }
-    const D3D12_RESOURCE_DESC resource_desc{
+    D3D12_RESOURCE_DESC resource_desc{
         .Dimension = DX12::GetResourceDimension(create_info.ViewType),
         .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-        .Width = create_info.Width,
-        .Height = create_info.Height,
+        .Width = create_info.Dimensions.x,
+        .Height = create_info.Dimensions.y,
         .DepthOrArraySize = create_info.Depth,
         .MipLevels = create_info.MipLevels,
         .Format = DX12::GetFormat(create_info.Format),
@@ -666,6 +845,10 @@ FS::ResourceHandle FS::RenderBackendDX12::CreateResource(const DX12::Heap& heap,
         .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
         .Flags = flags,
     };
+    if (create_info.TextureFlags & TextureFlags::eDepthTexture)
+    {
+        resource_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    }
     ID3D12Resource2* resource;
     const auto resource_result = m_device->CreatePlacedResource(heap.BaseHeap,
                                                                 heap.Offset,
@@ -673,8 +856,9 @@ FS::ResourceHandle FS::RenderBackendDX12::CreateResource(const DX12::Heap& heap,
                                                                 D3D12_RESOURCE_STATE_COMMON,
                                                                 &clear_value,
                                                                 IID_PPV_ARGS(&resource));
-    DX12::Name(resource, debug_name);
+
     DX12::ThrowIfFailed(resource_result, "RenderContextDX12::CreateResource Failed to create texture resource");
+    DX12::Name(resource, debug_name);
 
     const auto handle = static_cast<ResourceHandle>(m_resources.size());
     m_resources.emplace_back(resource);
@@ -853,7 +1037,7 @@ FS::DX12::Descriptor FS::RenderBackendDX12::CreateShaderResourceView(ResourceHan
 }
 
 FS::DX12::Descriptor FS::RenderBackendDX12::CreateRenderTargetView(ResourceHandle resource_handle,
-                                                                   const RenderTargetCreateInfo& create_info)
+                                                                   const TextureCreateInfo& create_info)
 {
     const D3D12_RENDER_TARGET_VIEW_DESC render_target_view_desc = {
         .Format = DX12::GetFormat(create_info.Format),
@@ -865,12 +1049,11 @@ FS::DX12::Descriptor FS::RenderBackendDX12::CreateRenderTargetView(ResourceHandl
     return rtv_descriptor;
 }
 
-FS::DX12::Descriptor FS::RenderBackendDX12::CreateDepthStencilView(ResourceHandle resource_handle,
-                                                                   const DepthStencilCreateInfo& create_info)
+FS::DX12::Descriptor FS::RenderBackendDX12::CreateDepthStencilView(ResourceHandle resource_handle)
 {
-    const D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {
-        .Format = DX12::GetFormat(create_info.Format),
-        .ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D, // Hardcoded for now, since I don't expect to use anything else
+    constexpr D3D12_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc = {
+        .Format = DXGI_FORMAT_D32_FLOAT, // TODO: Change
+        .ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D, // TODO: Change
     };
     const auto dsv_descriptor = m_dsv_allocator.Allocate();
     const auto& [BaseResource, ResourceState] = m_resources.at(static_cast<u32>(resource_handle));

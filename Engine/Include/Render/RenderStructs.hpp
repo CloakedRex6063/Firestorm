@@ -1,5 +1,6 @@
 #pragma once
 #include "Render/RenderEnums.hpp"
+#include "Tools/EnumFlags.hpp"
 
 namespace FS
 {
@@ -7,30 +8,27 @@ namespace FS
     {
         DevicePreference GpuPreference;
     };
+
     enum class CommandHandle : u32
     {
         eNull = std::numeric_limits<u32>::max(),
     };
-    enum class RenderTargetHandle : u32
-    {
-        eNull = std::numeric_limits<u32>::max(),
-    };
-    enum class DepthStencilHandle : u32
-    {
-        eNull = std::numeric_limits<u32>::max(),
-    };
+
     enum class BufferHandle : u32
     {
         eNull = std::numeric_limits<u32>::max(),
     };
+
     enum class TextureHandle : u32
     {
         eNull = std::numeric_limits<u32>::max(),
     };
+
     enum class ResourceHandle : u32
     {
         eNull = std::numeric_limits<u32>::max(),
     };
+
     enum class ShaderHandle : u32
     {
         eNull = std::numeric_limits<u32>::max(),
@@ -39,8 +37,8 @@ namespace FS
 
     struct RenderPassInfo
     {
-        std::vector<RenderTargetHandle> RenderTargets{};
-        DepthStencilHandle DepthStencil = DepthStencilHandle::eNull;
+        std::vector<TextureHandle> RenderTargets{};
+        TextureHandle DepthStencil = TextureHandle::eNull;
 
         enum class LoadOp
         {
@@ -67,23 +65,15 @@ namespace FS
     struct FrameData
     {
         CommandHandle CommandHandle = CommandHandle::eNull;
-        RenderTargetHandle RenderTargetHandle = RenderTargetHandle::eNull;
+        TextureHandle RenderTargetHandle = TextureHandle::eNull;
         u64 FenceValue = 0;
     };
 
-    struct RenderTargetCreateInfo
+    struct BufferUploadInfo
     {
-        glm::uvec2 Size;
-        Format Format;
-        ViewType ViewType;
-        ResourceHandle ResourceHandle = ResourceHandle::eNull;
-    };
-
-    struct DepthStencilCreateInfo
-    {
-        glm::uvec2 Size;
-        Format Format;
-        ResourceHandle ResourceHandle = ResourceHandle::eNull;
+        const void* Data = nullptr;
+        u32 Size = 0;
+        u32 Offset = 0;
     };
 
     struct BufferCreateInfo
@@ -93,20 +83,28 @@ namespace FS
         u32 Stride = 0;
         ResourceHandle ResourceHandle = ResourceHandle::eNull;
         BufferType Type = BufferType::eStorage;
+        BufferUploadInfo UploadInfo;
     };
 
+    enum class TextureFlags : u8
+    {
+        eNone = 0,
+        eRenderTexture = 1 << 0,
+        eDepthTexture = 1 << 1,
+        eShaderResource = 1 << 2
+    };
+    
     struct TextureCreateInfo
     {
-        u64 Width = 0;
-        u32 Height = 0;
+        glm::uvec2 Dimensions;
         u16 Depth = 1;
         u16 MipLevels = 1;
         Format Format{};
         ViewType ViewType{};
-        bool RenderTarget = false;
-        bool DepthStencil = false;
+        EnumFlags<TextureFlags> TextureFlags;
+        ResourceHandle ResourceHandle = ResourceHandle::eNull;
     };
-    
+
     struct GraphicsShaderCreateInfo
     {
         std::vector<char> VertexCode = {};
@@ -124,7 +122,7 @@ namespace FS
     {
         std::vector<char> ComputeCode = {};
     };
-    
+
     struct Viewport
     {
         glm::vec2 Dimensions;
@@ -136,5 +134,14 @@ namespace FS
     {
         glm::u16vec2 Min = glm::u16vec2(0);
         glm::u16vec2 Max;
+    };
+
+    struct Vertex
+    {
+        glm::vec3 Position;
+        float UVx;
+        glm::vec3 Normal;
+        float UVy;
+        glm::vec4 Tangent;
     };
 } // namespace FS

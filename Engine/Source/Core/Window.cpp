@@ -1,6 +1,6 @@
 #include "Core/Window.hpp"
-
 #include "Core/Engine.hpp"
+#include "Core/Events.hpp"
 
 namespace
 {
@@ -18,6 +18,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, const UINT uMsg, const WPARAM wParam, con
         return 0;
     case WM_SIZE:
         g_window_size = { static_cast<float>(LOWORD(lParam)), static_cast<float>(HIWORD(lParam)) };
+        FS::GEngine.Events().Broadcast<FS::WindowResizeEvent>({FS::Window::GetWindowSize()});
     default:
         break;
     }

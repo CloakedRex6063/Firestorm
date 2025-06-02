@@ -9,4 +9,5 @@ else ()
     target_compile_definitions(Engine PUBLIC FS_RELEASE)
 endif ()
 
+add_subdirectory(Shaders)
 add_subdirectory(External)

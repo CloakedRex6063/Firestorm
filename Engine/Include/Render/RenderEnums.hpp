@@ -135,6 +135,7 @@ namespace FS
     enum class BufferType : u8
     {
         eStorage,
+        eIndex,
         eUniform,
         eStaging,
         eReadback

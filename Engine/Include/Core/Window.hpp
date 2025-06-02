@@ -3,6 +3,10 @@
 
 namespace FS
 {
+    struct WindowResizeEvent
+    {
+        glm::uvec2 Size;
+    };
     class Window final : public System
     {
     public:

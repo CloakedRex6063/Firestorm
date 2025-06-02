@@ -6,6 +6,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(GLM)
 target_link_libraries(Engine PUBLIC glm::glm)
 
+FetchContent_Declare(
+        GLAZE
+        GIT_REPOSITORY https://github.com/stephenberry/glaze
+        GIT_TAG v5.2.0)
+FetchContent_MakeAvailable(GLAZE)
+target_link_libraries(Engine PUBLIC glaze::glaze)
+
+
 add_library(STB STB/stb_image.cpp)
 target_include_directories(STB PUBLIC STB)
 target_link_libraries(Engine PUBLIC STB)

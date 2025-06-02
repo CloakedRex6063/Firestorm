@@ -40,27 +40,27 @@ namespace FS::DX12
         return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
     }
 
-    inline D3D12_RENDER_PASS_RENDER_TARGET_DESC GetRenderTargetDesc(const RenderTarget& renderTarget,
+    inline D3D12_RENDER_PASS_RENDER_TARGET_DESC GetRenderTargetDesc(const Texture& renderTarget,
                                                                     const RenderPassInfo::LoadOp loadOp,
                                                                     const RenderPassInfo::StoreOp storeOp,
                                                                     const glm::vec4& clearColor)
     {
         const CD3DX12_CLEAR_VALUE clearValue{DXGI_FORMAT_R32G32B32_FLOAT, glm::value_ptr(clearColor)};
         return {
-            .cpuDescriptor = renderTarget.RenderDescriptor.Cpu,
+            .cpuDescriptor = renderTarget.RtvDescriptor.Cpu,
             .BeginningAccess = {.Type = GetLoadOp(loadOp), .Clear = clearValue},
             .EndingAccess = GetStoreOp(storeOp),
         };
     }
 
-    inline D3D12_RENDER_PASS_DEPTH_STENCIL_DESC GetDepthStencilDesc(const DepthStencil& depthTarget,
+    inline D3D12_RENDER_PASS_DEPTH_STENCIL_DESC GetDepthStencilDesc(const Texture& depthTarget,
                                                                     const RenderPassInfo::LoadOp loadOp,
                                                                     const RenderPassInfo::StoreOp storeOp,
                                                                     const float clearColor)
     {
         const CD3DX12_CLEAR_VALUE clearValue{DXGI_FORMAT_R32_FLOAT, &clearColor};
         return {
-            .cpuDescriptor = depthTarget.DepthDescriptor.Cpu,
+            .cpuDescriptor = depthTarget.DsvDescriptor.Cpu,
             .DepthBeginningAccess = {.Type = GetLoadOp(loadOp), .Clear = clearValue},
             .StencilBeginningAccess = {.Type = GetLoadOp(loadOp), .Clear = clearValue},
             .DepthEndingAccess = GetStoreOp(storeOp),
@@ -111,8 +111,6 @@ namespace FS::DX12
         switch (view_type)
         {
         case ViewType::eUnknown:
-            return D3D12_DSV_DIMENSION_UNKNOWN;
-            break;
         case ViewType::eBuffer:
             return D3D12_DSV_DIMENSION_UNKNOWN;
             break;
@@ -146,20 +144,13 @@ namespace FS::DX12
             return D3D12_RESOURCE_DIMENSION_BUFFER;
             break;
         case ViewType::eTexture1D:
-            return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
-            break;
         case ViewType::eTexture1DArray:
-            return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-            break;
+            return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
         case ViewType::eTexture2D:
-            return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-            break;
         case ViewType::eTexture2DArray:
             return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-            break;
         case ViewType::eTexture3D:
             return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-            break;
         }
         return D3D12_RESOURCE_DIMENSION_UNKNOWN;
     }
@@ -170,25 +161,16 @@ namespace FS::DX12
         {
         case ViewType::eUnknown:
             return D3D12_SRV_DIMENSION_UNKNOWN;
-            break;
         case ViewType::eBuffer:
             return D3D12_SRV_DIMENSION_BUFFER;
-            break;
         case ViewType::eTexture1D:
-            return D3D12_SRV_DIMENSION_TEXTURE1D;
-            break;
         case ViewType::eTexture1DArray:
-            return D3D12_SRV_DIMENSION_TEXTURE2D;
-            break;
+            return D3D12_SRV_DIMENSION_TEXTURE1D;
         case ViewType::eTexture2D:
-            return D3D12_SRV_DIMENSION_TEXTURE2D;
-            break;
         case ViewType::eTexture2DArray:
             return D3D12_SRV_DIMENSION_TEXTURE2D;
-            break;
         case ViewType::eTexture3D:
             return D3D12_SRV_DIMENSION_TEXTURE3D;
-            break;
         }
         return D3D12_SRV_DIMENSION_UNKNOWN;
     }

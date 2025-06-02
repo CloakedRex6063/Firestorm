@@ -18,14 +18,31 @@ namespace FS
         void Submit(const Span<const CommandHandle>& command_handle, QueueType queue_type) override;
         void BeginCommand(CommandHandle commandHandle) override;
         void EndCommand(CommandHandle commandHandle) override;
-        void ClearRenderTarget(CommandHandle command_handle, RenderTargetHandle render_target_handle,
-                               glm::vec4 clear_color) override;
 
-        [[nodiscard]] RenderTargetHandle CreateRenderTarget(RenderTargetCreateInfo create_info,
-                                                            std::string_view debug_name) override;
-        [[nodiscard]] DepthStencilHandle CreateDepthStencil(DepthStencilCreateInfo create_info,
-                                                            std::string_view debug_name) override;
+        void PushConstant(CommandHandle commandHandle, u32 count, const void* data) override;
+        void SetViewport(CommandHandle commandHandle, const Viewport& viewport) override;
+        void SetScissor(CommandHandle commandHandle, const Scissor& scissor) override;
+        void SetPrimitiveTopology(CommandHandle commandHandle, PrimitiveTopology topology) override;
+        void BeginRenderPass(CommandHandle commandHandle, const RenderPassInfo& renderPassInfo) override;
+        void EndRenderPass(CommandHandle commandHandle) override;
+        void BindShader(CommandHandle commandHandle, ShaderHandle shaderHandle) override;
+        void ClearRenderTarget(CommandHandle command_handle, TextureHandle render_target_handle,
+                               glm::vec4 clear_color) override;
+        void Draw(CommandHandle commandHandle,
+                  u32 vertexCount,
+                  u32 instanceCount,
+                  u32 vertexOffset,
+                  u32 firstInstance) override;
+        void DrawIndexed(CommandHandle commandHandle,
+                         u32 indexCount,
+                         u32 instanceCount,
+                         u32 firstIndex,
+                         int vertexOffset,
+                         u32 firstInstance) override;
+        void BlitToSwapchain(CommandHandle commandHandle, TextureHandle render_target_handle) override;
+
         [[nodiscard]] CommandHandle CreateCommand(QueueType queue_type, std::string_view debug_name) override;
+        [[nodiscard]] TextureHandle CreateTexture(TextureCreateInfo create_info, std::string_view debug_name) override;
         [[nodiscard]] BufferHandle
         CreateBuffer(const BufferCreateInfo& create_info, std::string_view debug_name) override;
         [[nodiscard]] ShaderHandle CreateShader(const GraphicsShaderCreateInfo& create_info,
@@ -33,9 +50,15 @@ namespace FS
         [[nodiscard]] ShaderHandle
         CreateShader(const ComputeShaderCreateInfo& create_info, std::string_view debug_name) override;
 
-        void DestroyRenderTarget(RenderTargetHandle render_target_handle) override;
-        void DestroyDepthStencil(DepthStencilHandle depth_stencil_handle) override;
+        void DestroyTexture(TextureHandle texture_handle) override;
         void DestroyBuffer(BufferHandle buffer_handle) override;
+
+        void* MapBuffer(BufferHandle bufferHandle) override;
+        void UnmapBuffer(BufferHandle bufferHandle) override;
+        u32 GetGPUAddress(TextureHandle textureHandle) override;
+        u32 GetGPUAddress(BufferHandle bufferHandle) override;
+
+        void UploadToBuffer(BufferHandle buffer_handle, const BufferUploadInfo& info) override;
 
     private:
         void ChooseGPU();
@@ -47,6 +70,7 @@ namespace FS
         void CreateDescriptorHeaps();
         void CreateHeaps();
         void CreateRootSignature();
+        void CheckRebarSupport();
 
         [[nodiscard]] ResourceHandle
         CreateResource(const DX12::Heap& heap, const TextureCreateInfo& create_info, std::string_view debug_name);
@@ -60,13 +84,13 @@ namespace FS
         [[nodiscard]] DX12::Descriptor CreateShaderResourceView(ResourceHandle resource_handle,
                                                                 const TextureCreateInfo& create_info);
         [[nodiscard]] DX12::Descriptor CreateRenderTargetView(ResourceHandle resource_handle,
-                                                              const RenderTargetCreateInfo& create_info);
-        [[nodiscard]] DX12::Descriptor CreateDepthStencilView(ResourceHandle resource_handle,
-                                                              const DepthStencilCreateInfo& create_info);
+                                                              const TextureCreateInfo& create_info);
+        [[nodiscard]] DX12::Descriptor CreateDepthStencilView(ResourceHandle resource_handle);
         void TransitionResource(CommandHandle command_handle,
                                 ResourceHandle resource_handle,
                                 D3D12_RESOURCE_STATES new_state);
 
+    private:
         RenderContextCreateInfo m_args{};
         IDXGIFactory7* m_factory = nullptr;
         IDXGIAdapter4* m_adapter = nullptr;
@@ -88,12 +112,13 @@ namespace FS
         DX12::Heap m_upload_heap;
         DX12::Heap m_readback_heap;
 
-        std::vector<DX12::Command> m_commands;
-        std::vector<DX12::RenderTarget> m_render_targets;
-        std::vector<DX12::DepthStencil> m_depth_stencils;
-        std::vector<DX12::Texture> m_textures;
-        std::vector<DX12::Buffer> m_buffers;
-        std::vector<ID3D12PipelineState*> m_shaders;
-        std::vector<DX12::Resource> m_resources;
+        Vec<DX12::Command> m_commands;
+        Vec<DX12::Texture> m_textures;
+        Vec<TextureHandle> m_free_textures;
+        Vec<DX12::Buffer> m_buffers;
+        Vec<ID3D12PipelineState*> m_shaders;
+        Vec<DX12::Resource> m_resources;
+
+        bool m_rebar_supported = false;
     };
 }
